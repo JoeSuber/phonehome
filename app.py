@@ -53,6 +53,7 @@ class Phone(db.Model):
     MSLPC = db.Column(db.String(50))
     Comment = db.Column(db.String(255))
 
+db.create_all()
 
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(), Length(min=4, max=15)])
@@ -84,8 +85,6 @@ class NewDevice(FlaskForm):
     Serial_Number =  StringField('Serial_Number', validators=[InputRequired(), Length(min=4, max=80)])
     MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=4, max=80)])
     Comment =  StringField('Comment', validators=[InputRequired(), Length(min=4, max=80)])
-
-db.create_all()
 
 
 @login_manager.user_loader
