@@ -57,15 +57,21 @@ class Phone(UserMixin, db.Model):
 
 db.create_all()
 
+def unique_badge(prospect):
+    return User.query.filter_by(badge=prospect).first()
+
+
 class LoginForm(FlaskForm):
     badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
     remember = BooleanField('remember me')
+
 
 class AdminLoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(), Length(min=4, max=40)])
     password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
     badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
     remember = BooleanField('remember me')
+
 
 class RegisterForm(FlaskForm):
     __tablename__ = "devices"

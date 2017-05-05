@@ -2,7 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block title %}
-Sign Up
+New Device
 {% endblock %}
 
 {% block styles %}
@@ -14,12 +14,24 @@ Sign Up
 <div class="container">
 
   <form class="form-signin" method="POST" action="/signup">
-    <h2 class="form-signin-heading">Sign Up</h2>
+    <h2 class="form-signin-heading">Device Data</h2>
     {{ form.hidden_tag() }}
-    {{ wtf.form_field(form.username) }}
-    {{ wtf.form_field(form.email) }}
-    {{ wtf.form_field(form.password) }}
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Sign Up</button>
+    {{ wtf.form_field(form.MEID) }}
+    {{ wtf.form_field(form.SKU) }}
+    {{ wtf.form_field(form.TesterName) }}
+      {{ wtf.form_field(form.OEM) }}
+      {{ wtf.form_field(form.MODEL) }}
+      {{ wtf.form_field(form.Hardware_Type) }}
+      {{ wtf.form_field(form.In_Date) }}
+      {{ wtf.form_field(form.Out_Date) }}
+      {{ wtf.form_field(form.DVT_Admin) }}
+      {{ wtf.form_field(form.Comment) }}
+      {{ wtf.form_field(form.Archived) }}
+      {{ wtf.form_field(form.Serial_Number) }}
+      {{ wtf.form_field(form.MSLPC) }}
+      {{ wtf.form_field(form.IMEI) }}
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Enter</button>
   </form>
 
 </div> <!-- /container -->
