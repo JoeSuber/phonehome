@@ -61,7 +61,7 @@ class Phone(UserMixin, db.Model):
 db.create_all()
 
 class Unique(object):
-    """ validator that checks field uniqueness from within the form """
+    """ validator for FlaskForm that checks field uniqueness against the current database entries """
     def __init__(self, model, field, message=None):
         self.model = model
         self.field = field
@@ -95,7 +95,6 @@ class RegisterForm(FlaskForm):
     password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
     admin = BooleanField('admin')
 
-
 class NewDevice(FlaskForm):
     MEID = StringField('MEID', validators=[InputRequired(), Length(min=4, max=80),
                                            Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
@@ -128,6 +127,7 @@ def index():
         user = User.query.filter_by(badge=form.badge.data).first()
         if user:
             app.config['user'] = user
+            print("user = {}".format(app.config['user']))
             return redirect(url_for('meid'))
 
         return redirect(url_for('newperson'))
@@ -137,33 +137,45 @@ def index():
 # step 2, get the device
 @app.route('/meid')
 def meid():
+    app.config['meid'] = None
     form = MeidForm()
-
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
         if device:
+            app.config['meid'] = device
             return redirect(url_for('target_badge'))
         return redirect(url_for('newdevice'))
 
     return render_template('meid.html', form=form)
 
-# step 3, get the person the current user is targeting
+# step 3, get the person the current user is targeting, swap device ownership appropriately
 @app.route('/target_badge')
 def target_badge():
-    form = MeidForm()
-
+    form = TargetBadgeForm()
     if form.validate_on_submit():
         target = User.query.filter_by(badge=form.badge.data).first()
+
         if target:
-            return redirect(url_for('dashboard'))
-        return redirect(url_for('newperson'))
+            device_owner_username = app.config['meid'].TesterName
+            if app.config['user'].username == device_owner_username:    # give to target
+                app.config['meid'].TesterName = target.username
+                db.session.commit()
+            elif target.username == device_owner_username:              # take from target
+                app.config['meid'].TesterName = app.config['user'].username
+                db.session.commit()
+
+            app.config['meid'] = None
+            app.config['user'] = None
+            return redirect(url_for('/'))       # the task is done, go back to start
+
+        return redirect(url_for('newperson'))   # no target person to trade devices with
 
     return render_template('target_badge.html', form=form)
 
 
 @app.route('/newperson', methods=['GET', 'POST'])
 def newperson():
-    form = RegisterForm()
+    form = RegisterForm(badge=app.config['user'].badge)
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data, method='sha256')
         logged = User(badge=form.badge.data,
@@ -173,8 +185,11 @@ def newperson():
                         admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
-        #todo: New user added to session or some kind of global object
-        return redirect(url_for(''))
+        app.config['user'] = logged
+        if app.config['meid'] == None:          # no device presented yet
+            return redirect(url_for('meid'))
+        else:
+            return redirect(url_for('target_badge'))    # have user & device, go get target
         # return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
     return render_template('signup.html', form=form)
 
