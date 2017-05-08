@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
-from wtforms import StringField, PasswordField, BooleanField
+from wtforms import StringField, PasswordField, BooleanField, ValidationError
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -36,13 +36,14 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(15), unique=True)
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
+    admin = db.Column(db.Boolean)
 
 
 class Phone(UserMixin, db.Model):
     """  will add relations to User http://flask-sqlalchemy.pocoo.org/2.1/quickstart/"""
     __tablename__ = "devices"
     id = db.Column(db.Integer, primary_key=True)
-    MEID = db.Column(db.String(28))
+    MEID = db.Column(db.String(28), unique=True)
     OEM = db.Column(db.String(50))
     SKU = db.Column(db.String(50))
     IMEI = db.Column(db.String(50))
@@ -59,32 +60,45 @@ class Phone(UserMixin, db.Model):
 
 db.create_all()
 
-def unique_badge(form, field):
-    return User.query.filter_by(badge=prospect).first()
+class Unique(object):
+    """ validator that checks field uniqueness from within the form """
+    def __init__(self, model, field, message=None):
+        self.model = model
+        self.field = field
+        if not message:
+            message = u'already exists!'
+        self.message = message
+
+    def __call__(self, form, field):
+        check = self.model.query.filter(self.field == field.data).first()
+        if check:
+            raise ValidationError(self.message)
 
 
 class LoginForm(FlaskForm):
     badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
 
+class MeidForm(FlaskForm):
+    meid = StringField('MEID', validators=[InputRequired()])
 
-class AdminLoginForm(FlaskForm):
-    username = StringField('username', validators=[InputRequired(), Length(min=4, max=40)])
-    password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
-    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
-    remember = BooleanField('remember me')
-
+class TargetBadgeForm(FlaskForm):
+    target_badge = StringField('Badge Target', validators=[InputRequired()])
 
 class RegisterForm(FlaskForm):
     __tablename__ = "devices"
-    email = StringField('email', validators=[InputRequired(), Email(message='Invalid email'), Length(max=50)])
-    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
-    username = StringField('username', validators=[InputRequired(), Length(min=4, max=15)])
+    email = StringField('email', validators=[InputRequired(), Email(message='Invalid email'), Length(max=50),
+                                             Unique(User, User.email, message="Email address already in use")])
+    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80),
+                                             Unique(User, User.badge, message="Badge number already assigned!")])
+    username = StringField('username', validators=[InputRequired(), Length(min=4, max=15),
+                                                   Unique(User, User.username, message="Please choose another name")])
     password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
     admin = BooleanField('admin')
 
 
 class NewDevice(FlaskForm):
-    MEID = StringField('MEID', validators=[InputRequired(), Length(min=4, max=80)])
+    MEID = StringField('MEID', validators=[InputRequired(), Length(min=4, max=80),
+                                           Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
     OEM =  StringField('OEM', validators=[InputRequired(), Length(min=4, max=80)])
     SKU =  StringField('SKU', validators=[InputRequired(), Length(min=4, max=80)])
     IMEI = StringField('IMEI', validators=[InputRequired(), Length(min=4, max=80)])
@@ -104,20 +118,47 @@ class NewDevice(FlaskForm):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
+#step 1, get the badge to log in the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = LoginForm()
+    app.config['user'] = None
 
     if form.validate_on_submit():
         user = User.query.filter_by(badge=form.badge.data).first()
         if user:
-            return redirect(url_for('dashboard'))
+            app.config['user'] = user
+            return redirect(url_for('meid'))
 
-        app.config['MEID'] = form.badge.data
         return redirect(url_for('newperson'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
     return render_template('index.html', form=form)
+
+# step 2, get the device
+@app.route('/meid')
+def meid():
+    form = MeidForm()
+
+    if form.validate_on_submit():
+        device = Phone.query.filter_by(MEID=form.meid.data).first()
+        if device:
+            return redirect(url_for('target_badge'))
+        return redirect(url_for('newdevice'))
+
+    return render_template('meid.html', form=form)
+
+# step 3, get the person the current user is targeting
+@app.route('/target_badge')
+def target_badge():
+    form = MeidForm()
+
+    if form.validate_on_submit():
+        target = User.query.filter_by(badge=form.badge.data).first()
+        if target:
+            return redirect(url_for('dashboard'))
+        return redirect(url_for('newperson'))
+
+    return render_template('target_badge.html', form=form)
 
 
 @app.route('/newperson', methods=['GET', 'POST'])
@@ -132,7 +173,8 @@ def newperson():
                         admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
-        return '<h1>New user has been created!</h1>'
+        #todo: New user added to session or some kind of global object
+        return redirect(url_for(''))
         # return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
     return render_template('signup.html', form=form)
 
