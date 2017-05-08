@@ -127,7 +127,7 @@ def index():
         user = User.query.filter_by(badge=form.badge.data).first()
         if user:
             app.config['user'] = user
-            print("user = {}".format(app.config['user']))
+            print("user = {}".format(app.config['user'].username))
             return redirect(url_for('meid'))
 
         return redirect(url_for('newperson'))
@@ -135,12 +135,13 @@ def index():
     return render_template('index.html', form=form)
 
 # step 2, get the device
-@app.route('/meid')
+@app.route('/meid', methods=['GET', 'POST'])
 def meid():
     app.config['meid'] = None
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
+        print("device = {}".format(device))
         if device:
             app.config['meid'] = device
             return redirect(url_for('target_badge'))
@@ -149,7 +150,7 @@ def meid():
     return render_template('meid.html', form=form)
 
 # step 3, get the person the current user is targeting, swap device ownership appropriately
-@app.route('/target_badge')
+@app.route('/target_badge', methods=['GET', 'POST'])
 def target_badge():
     form = TargetBadgeForm()
     if form.validate_on_submit():
