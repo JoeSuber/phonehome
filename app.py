@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, flash
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
 from wtforms import StringField, PasswordField, BooleanField
@@ -14,6 +14,8 @@ app.config['SECRET_KEY'] = 'Iamtheverymodelofamodernmajorgeneral'
 __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
 __sql_inventory_fn__ = os.getcwd() + os.sep + __dbfn__ + __sqlext__
+
+# for when windows thinks the home directory is somewhere inconvenient
 __sql_inventory_fn__ = "C:\\Users\\2053_HSUF\\PycharmProjects\\phonehome\\DVTCinventory.sqlite"
 
 print("Database file located at: {}".format(__sql_inventory_fn__))
@@ -57,13 +59,12 @@ class Phone(UserMixin, db.Model):
 
 db.create_all()
 
-def unique_badge(prospect):
+def unique_badge(form, field):
     return User.query.filter_by(badge=prospect).first()
 
 
 class LoginForm(FlaskForm):
     badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
-    remember = BooleanField('remember me')
 
 
 class AdminLoginForm(FlaskForm):
@@ -80,6 +81,7 @@ class RegisterForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(), Length(min=4, max=15)])
     password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
     admin = BooleanField('admin')
+
 
 class NewDevice(FlaskForm):
     MEID = StringField('MEID', validators=[InputRequired(), Length(min=4, max=80)])
@@ -103,13 +105,8 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -117,44 +114,26 @@ def login():
         if user:
             return redirect(url_for('dashboard'))
 
-        return redirect(url_for('signup'))
+        app.config['MEID'] = form.badge.data
+        return redirect(url_for('newperson'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
-
-    return render_template('login.html', form=form)
-
-
-@app.route('/adminlogin', methods=['GET', 'POST'])
-def adminlogin():
-    form = AdminLoginForm()
-    if form.validate_on_submit():
-        logged_admin = User(badge=form.badge.data,
-                            email=form.email.data,
-                            username = form.username.data,
-                            password = form.password.data,
-                            admin = form.admin.data
-                            )
-        db.session.add(logged_admin)
-        db.session.commit()
-
-    return render_template('adminlogin.html', form=form)
+    return render_template('index.html', form=form)
 
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
+@app.route('/newperson', methods=['GET', 'POST'])
+def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data, method='sha256')
-        new_user = User(username=form.username.data,
-                        badge=form.badge.data,
+        logged = User(badge=form.badge.data,
                         email=form.email.data,
-                        password=hashed_password
-                        )
-        db.session.add(new_user)
+                        username = form.username.data,
+                        password = hashed_password,
+                        admin = form.admin.data)
+        db.session.add(logged)
         db.session.commit()
-
         return '<h1>New user has been created!</h1>'
-        #return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
-
+        # return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
     return render_template('signup.html', form=form)
 
 
