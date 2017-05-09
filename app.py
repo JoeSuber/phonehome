@@ -117,19 +117,28 @@ class NewDevice(FlaskForm):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
+app.config['user'] = None
+app.config['newid'] = None
+app.config['meid'] = None
+app.config['new_meid'] = None
+
 #step 1, get the badge to log in the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = LoginForm()
     app.config['user'] = None
+    app.config['newid'] = None
+    app.config['meid'] = None
+    app.config['new_meid'] = None
 
     if form.validate_on_submit():
         user = User.query.filter_by(badge=form.badge.data).first()
         if user:
             app.config['user'] = user
-            print("user = {}".format(app.config['user'].username))
             return redirect(url_for('meid'))
 
+        app.config['newid'] = form.badge.data
         return redirect(url_for('newperson'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
     return render_template('index.html', form=form)
@@ -138,37 +147,42 @@ def index():
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
     app.config['meid'] = None
+    app.config['new_meid'] = None
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
-        print("device = {}".format(device))
         if device:
             app.config['meid'] = device
             return redirect(url_for('target_badge'))
+
+        app.config['new_meid'] = form.meid.data
         return redirect(url_for('newdevice'))
 
-    return render_template('meid.html', form=form)
+    return render_template('meid.html', form=form, user=app.config['user'])
 
 # step 3, get the person the current user is targeting, swap device ownership appropriately
 @app.route('/target_badge', methods=['GET', 'POST'])
 def target_badge():
     form = TargetBadgeForm()
     if form.validate_on_submit():
-        target = User.query.filter_by(badge=form.badge.data).first()
+        target_user = User.query.filter_by(badge=form.target_badge.data).first()
 
-        if target:
+        if target_user:
             device_owner_username = app.config['meid'].TesterName
             if app.config['user'].username == device_owner_username:    # give to target
-                app.config['meid'].TesterName = target.username
+                app.config['meid'].TesterName = target_user.username
+                print("giving")
                 db.session.commit()
-            elif target.username == device_owner_username:              # take from target
+            elif target_user.username == device_owner_username:              # take from target
                 app.config['meid'].TesterName = app.config['user'].username
+                print("taking")
                 db.session.commit()
 
             app.config['meid'] = None
             app.config['user'] = None
             return redirect(url_for('/'))       # the task is done, go back to start
 
+        app.config['newid'] = form.target_badge.data
         return redirect(url_for('newperson'))   # no target person to trade devices with
 
     return render_template('target_badge.html', form=form)
@@ -176,14 +190,17 @@ def target_badge():
 
 @app.route('/newperson', methods=['GET', 'POST'])
 def newperson():
-    form = RegisterForm(badge=app.config['user'].badge)
+    form = RegisterForm()
+    if app.config['newid']:
+        form.badge.data = app.config['newid']
+        app.config['newid'] = None
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data, method='sha256')
         logged = User(badge=form.badge.data,
-                        email=form.email.data,
-                        username = form.username.data,
-                        password = hashed_password,
-                        admin = form.admin.data)
+                      email=form.email.data,
+                      username = form.username.data,
+                      password = hashed_password,
+                      admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
         app.config['user'] = logged
@@ -191,32 +208,36 @@ def newperson():
             return redirect(url_for('meid'))
         else:
             return redirect(url_for('target_badge'))    # have user & device, go get target
-        # return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
+
     return render_template('signup.html', form=form)
 
 
 @app.route('/newdevice', methods=['GET', 'POST'])
 def newdevice():
     form = NewDevice()
+
+    if app.config['new_meid']:
+        form.MEID.data = app.config['new_meid']
+        app.config['new_meid'] = None
     if form.validate_on_submit():
-        new_device = NewDevice(MEID = form.MEID.data,
-                               OEM = form.OEM.data,
-                               SKU = form.SKU.data,
-                               IMEI = form.IMEI.data,
-                               MODEL = form.MODEL.data,
-                               Hardware_Type = form.Hardware_Type.data,
-                               In_Date = form.In_Date.data,
-                               Out_Date = form.Out_Date.data,
-                               Archived = form.Archived.data,
-                               TesterName = form.TesterName.data,
-                               DVT_Admin = form.DVT_Admin.data,
-                               Serial_Number = form.SKU.data,
-                               MSLPC = form.SKU.data,
-                               Comment = form.SKU.data)
+        new_device = Phone(MEID = form.MEID.data,
+                           OEM = form.OEM.data,
+                           SKU = form.SKU.data,
+                           IMEI = form.IMEI.data,
+                           MODEL = form.MODEL.data,
+                           Hardware_Type = form.Hardware_Type.data,
+                           In_Date = form.In_Date.data,
+                           Out_Date = form.Out_Date.data,
+                           Archived = form.Archived.data,
+                           TesterName = form.TesterName.data,
+                           DVT_Admin = form.DVT_Admin.data,
+                           Serial_Number = form.Serial_Number.data,
+                           MSLPC = form.MSLPC.data,
+                           Comment = form.Comment.data)
         db.session.add(new_device)
         db.session.commit()
-
-        return '<h1>New Device Entered!</h1>'
+        app.config['meid'] = newdevice
+        return redirect(url_for('target_badge'))
         #return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
 
     return render_template('newdevice.html', form=form)
