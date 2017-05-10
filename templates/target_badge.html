@@ -1,32 +1,17 @@
+<!DOCTYPE html>
 {% extends "bootstrap/base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
+{% import "navbar.html" as navbar %}
+{% import "flasher.html" as flasher %}
 
 {% block title %}
 Target Person
 {% endblock %}
 
 {% block content %}
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="#">DVT&C </a>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-              <li> {{ user.username }} </li>
-            <li class="active"><a href="{{ url_for('meid') }}">Change Device MEID</a></li>
-            <li><a href="{{ url_for('newperson') }}">New Person</a></li>
-            <li><a href="{{ url_for('newdevice') }}">New Device</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
+
+{{ navbar }}
+{{ flasher }}
 
 {% block styles %}
 {{super()}}
@@ -35,10 +20,10 @@ Target Person
 
     <div class="container">
 
-      <form class="form-signin" method="POST" action="/">
+      <form class="form-signin" method="POST" action="/target_badge">
         <h2 class="form-signin-heading">Other Person's Badge</h2>
         {{ form.hidden_tag() }}
-        {{ wtf.form_field(form.badge) }}
+        {{ wtf.form_field(form.target_badge) }}
         <button class="btn btn-lg btn-primary btn-block" type="submit">Enter Other's Badge</button>
       </form>
 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, flash, session, g
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
 from wtforms import StringField, PasswordField, BooleanField, ValidationError
@@ -9,7 +9,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'Iamtheverymodelofamodernmajorgeneral'
+app.config['SECRET_KEY'] = os.urandom(24)
 
 __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
@@ -33,7 +33,7 @@ class User(UserMixin, db.Model):
     __tablename__ = "people"
     id = db.Column(db.Integer, primary_key=True)
     badge = db.Column(db.String(80), unique=True)
-    username = db.Column(db.String(15), unique=True)
+    username = db.Column(db.String(40), unique=True)
     email = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(80))
     admin = db.Column(db.Boolean)
@@ -75,11 +75,30 @@ class Unique(object):
             raise ValidationError(self.message)
 
 
+class Exists(object):
+    """ validator for FlaskForm that checks that an item exists """
+    def __init__(self, model, field, message=None):
+        self.model = model
+        self.field = field
+        if not message:
+            message = u'does not exist in database!'
+        self.message = message
+
+    def __call__(self, form, field):
+        check = self.model.query.filter(self.field == field.data).first()
+        if not check:
+            raise ValidationError(self.message)
+
+
 class LoginForm(FlaskForm):
-    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80)])
+    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80),
+                                             Exists(User, User.badge,
+                                                    message="Badge does not belong to a registered user")])
 
 class MeidForm(FlaskForm):
-    meid = StringField('MEID', validators=[InputRequired()])
+    meid = StringField('MEID', validators=[InputRequired(),
+                                           Exists(Phone, Phone.MEID,
+                                                  message="MEID does not match any devices in database")])
 
 class TargetBadgeForm(FlaskForm):
     target_badge = StringField('Badge Target', validators=[InputRequired()])
@@ -103,10 +122,10 @@ class NewDevice(FlaskForm):
     IMEI = StringField('IMEI', validators=[InputRequired(), Length(min=4, max=80)])
     MODEL =  StringField('MODEL', validators=[InputRequired(), Length(min=4, max=80)])
     Hardware_Type =  StringField('Hardware_Type', validators=[InputRequired(), Length(min=4, max=80)])
-    In_Date =  StringField('In_Date', validators=[InputRequired(), Length(min=4, max=80)])
-    Out_Date =  StringField('Out_Date', validators=[InputRequired(), Length(min=4, max=80)])
-    Archived =  StringField('Archived', validators=[InputRequired(), Length(min=4, max=80)])
-    TesterName =  StringField('TesterName', validators=[InputRequired(), Length(min=4, max=80)])
+    In_Date =  StringField('In_Date', validators=[Length(min=4, max=80)])
+    Out_Date =  StringField('Out_Date', validators=[Length(min=4, max=80)])
+    Archived =  StringField('Archived', validators=[Length(max=80)])
+    TesterName =  StringField('TesterName', validators=[InputRequired(), Length(min=1, max=80)])
     DVT_Admin =  StringField('DVT_Admin', validators=[InputRequired(), Length(min=4, max=80)])
     Serial_Number =  StringField('Serial_Number', validators=[InputRequired(), Length(min=4, max=80)])
     MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=4, max=80)])
@@ -118,47 +137,31 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-app.config['user'] = None
-app.config['newid'] = None
-app.config['meid'] = None
-app.config['new_meid'] = None
-
 #step 1, get the badge to log in the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    session['user'] = None
     form = LoginForm()
-    app.config['user'] = None
-    app.config['newid'] = None
-    app.config['meid'] = None
-    app.config['new_meid'] = None
-
     if form.validate_on_submit():
         user = User.query.filter_by(badge=form.badge.data).first()
-        if user:
-            app.config['user'] = user
-            return redirect(url_for('meid'))
-
-        app.config['newid'] = form.badge.data
-        return redirect(url_for('newperson'))
+        session['user'] = user.username.data
+        return redirect(url_for('meid'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
     return render_template('index.html', form=form)
 
 # step 2, get the device
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
-    app.config['meid'] = None
-    app.config['new_meid'] = None
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
         if device:
-            app.config['meid'] = device
-            return redirect(url_for('target_badge'))
+            device.TesterName = session['user']
+            db.session.commit()
+            flash("{}, {} is now owned by {}".format(device.SKU.data, device.MEID.data, session['user']))
+        return redirect(url_for('index'))
 
-        app.config['new_meid'] = form.meid.data
-        return redirect(url_for('newdevice'))
-
-    return render_template('meid.html', form=form, user=app.config['user'])
+    return render_template('meid.html', form=form)
 
 # step 3, get the person the current user is targeting, swap device ownership appropriately
 @app.route('/target_badge', methods=['GET', 'POST'])
@@ -168,7 +171,9 @@ def target_badge():
         target_user = User.query.filter_by(badge=form.target_badge.data).first()
 
         if target_user:
+            print(target_user, " tu   tmt", app.config['meid'].TesterName)
             device_owner_username = app.config['meid'].TesterName
+            print(app.config['user'].username)
             if app.config['user'].username == device_owner_username:    # give to target
                 app.config['meid'].TesterName = target_user.username
                 print("giving")
@@ -178,9 +183,7 @@ def target_badge():
                 print("taking")
                 db.session.commit()
 
-            app.config['meid'] = None
-            app.config['user'] = None
-            return redirect(url_for('/'))       # the task is done, go back to start
+            return redirect(url_for('index'))       # the task is done, go back to start
 
         app.config['newid'] = form.target_badge.data
         return redirect(url_for('newperson'))   # no target person to trade devices with
@@ -193,7 +196,7 @@ def newperson():
     form = RegisterForm()
     if app.config['newid']:
         form.badge.data = app.config['newid']
-        app.config['newid'] = None
+
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data, method='sha256')
         logged = User(badge=form.badge.data,
@@ -203,7 +206,6 @@ def newperson():
                       admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
-        app.config['user'] = logged
         if app.config['meid'] == None:          # no device presented yet
             return redirect(url_for('meid'))
         else:
