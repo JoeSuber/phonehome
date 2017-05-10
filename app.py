@@ -142,6 +142,7 @@ def load_user(user_id):
 #step 1, get the badge to get the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    flash("HELLO!!!!")
     session['user'] = None
     form = LoginForm()
     if form.validate_on_submit():
@@ -178,6 +179,7 @@ def newperson():
                       email=form.email.data,
                       username = form.username.data,
                       password = hashed_password,
+                      phone_number = form.phone_number.data,
                       admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
@@ -192,29 +194,17 @@ def newperson():
 @app.route('/newdevice', methods=['GET', 'POST'])
 def newdevice():
     form = NewDevice()
-
-    if app.config['new_meid']:
-        form.MEID.data = app.config['new_meid']
-        app.config['new_meid'] = None
     if form.validate_on_submit():
         new_device = Phone(MEID = form.MEID.data,
-                           OEM = form.OEM.data,
                            SKU = form.SKU.data,
-                           IMEI = form.IMEI.data,
                            MODEL = form.MODEL.data,
                            Hardware_Type = form.Hardware_Type.data,
-                           In_Date = form.In_Date.data,
-                           Out_Date = form.Out_Date.data,
-                           Archived = form.Archived.data,
-                           TesterName = form.TesterName.data,
-                           DVT_Admin = form.DVT_Admin.data,
-                           Serial_Number = form.Serial_Number.data,
+                           Hardware_Version=form.Hardware_Version.data,
                            MSLPC = form.MSLPC.data,
                            Comment = form.Comment.data)
         db.session.add(new_device)
         db.session.commit()
-        app.config['meid'] = newdevice
-        return redirect(url_for('target_badge'))
+        return redirect(url_for('newdevice'))
         #return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
 
     return render_template('newdevice.html', form=form)
