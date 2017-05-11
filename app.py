@@ -43,8 +43,8 @@ class User(UserMixin, db.Model):
 #                phone_number='913-203-5347', admin=True)
 
 
-class Phone(UserMixin, db.Model):
-    """  will add relations to User http://flask-sqlalchemy.pocoo.org/2.1/quickstart/"""
+class Phone(db.Model):
+    """  will add relations to User ...http://flask-sqlalchemy.pocoo.org/2.1/quickstart/"""
     __tablename__ = "devices"
     id = db.Column(db.Integer, primary_key=True)
     MEID = db.Column(db.String(28), unique=True)
@@ -60,6 +60,12 @@ class Phone(UserMixin, db.Model):
     Comment = db.Column(db.String(255))
 
 db.create_all()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 class Unique(object):
     """ validator for FlaskForm that demands field uniqueness against the current database entries """
@@ -91,8 +97,9 @@ class Exists(object):
             raise ValidationError(self.message)
 
 
-class LoginForm(FlaskForm):
-    badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80),
+class BadgeEntryForm(FlaskForm):
+    badge = StringField('badge', validators=[InputRequired(),
+                                             Length(min=4, max=40),
                                              Exists(User, User.badge,
                                                     message="Badge does not belong to a registered user")])
 
@@ -103,8 +110,14 @@ class MeidForm(FlaskForm):
                                                   message="MEID does not match any devices in database")])
 
 
+class LoginForm(FlaskForm):
+    username = StringField('username', validators=[InputRequired(),
+                                                   Exists(User, User.username, message="Not a registered username")])
+    password = PasswordField('password', validators=[InputRequired(),
+                                                     Length(min=8, max=80)])
+
+
 class RegisterForm(FlaskForm):
-    __tablename__ = "devices"
     email = StringField('email', validators=[InputRequired(), Email(message='Invalid email'), Length(min=4, max=50),
                                              Unique(User, User.email, message="Email address already in use")])
     badge = StringField('badge', validators=[InputRequired(), Length(min=4, max=80),
@@ -112,19 +125,19 @@ class RegisterForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(), Length(min=4, max=15),
                                                    Unique(User, User.username, message="Please choose another name")])
     password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
-    phone_number = StringField('phone number', validators=[Length(min=4, max=12)])
+    phone_number = StringField('phone xxx-xxx-xxxx', validators=[Length(min=4, max=12)])
     admin = BooleanField('admin')
 
 
 class NewDevice(FlaskForm):
     MEID = StringField('MEID', validators=[InputRequired(), Length(min=10, max=24),
                                            Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
-    SKU =  StringField('SKU', validators=[InputRequired(), Length(min=4, max=80)])
-    MODEL =  StringField('MODEL', validators=[InputRequired(), Length(min=4, max=80)])
-    Hardware_Version = StringField('Hardware_Version', validators=[InputRequired(), Length(min=4, max=80)])
-    Hardware_Type =  StringField('Hardware_Type', validators=[InputRequired(), Length(min=4, max=80)])
-    MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=4, max=80)])
-    Comment =  StringField('Comment', validators=[InputRequired(), Length(min=4, max=80)])
+    SKU =  StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
+    MODEL =  StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
+    Hardware_Version = StringField('Hardware_Version', validators=[Length(min=1, max=40)])
+    Hardware_Type =  StringField('Hardware_Type', validators=[Length(min=1, max=40)])
+    MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=2, max=40)])
+    Comment =  StringField('Comment', validators=[Length(min=2, max=80)])
 
 
 def change_ownership(device, username):
@@ -134,33 +147,30 @@ def change_ownership(device, username):
     return 1
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-#step 1, get the badge to get the user
+# step 1, get the badge to get the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    flash("HELLO!!!!")
+    flash("HELLO")
     session['user'] = None
-    form = LoginForm()
+    form = BadgeEntryForm()
     if form.validate_on_submit():
         user = User.query.filter_by(badge=form.badge.data).first()
-        session['user'] = user.username
+        session['user'] = (user.username, user.badge)
         return redirect(url_for('meid'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
     return render_template('index.html', form=form)
 
-# step 2, get the device
+
+# step 2, get the device, change owner
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
     form = MeidForm()
+    flash("{}, {}".format(session['user'][0], session['user'][1]))
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
         if device:
-            change_ownership(device, session['user'])
-            flash("{}, {} is now owned by {}".format(device.MODEL, device.MEID, session['user']))
+            change_ownership(device, session['user'][0])
+            flash("{}, {} is now owned by {}".format(device.MODEL, device.MEID, session['user'][0]))
 
         return redirect(url_for('index'))
 
@@ -168,6 +178,7 @@ def meid():
 
 
 @app.route('/newperson', methods=['GET', 'POST'])
+@login_required
 def newperson():
     form = RegisterForm()
     if app.config['newid']:
@@ -192,6 +203,7 @@ def newperson():
 
 
 @app.route('/newdevice', methods=['GET', 'POST'])
+@login_required
 def newdevice():
     form = NewDevice()
     if form.validate_on_submit():
@@ -216,11 +228,13 @@ def dashboard():
     return render_template('dashboard.html', name=current_user.username)
 
 
-@app.route('/admin_login')
-@login_required
-def admin_login():
-    session['admin'] = login_user()
-    return redirect(url_for('index'))
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        hashed_password = generate_password_hash(form.password.data, method='sha256')
+
+    return render_template('login.html')
 
 
 @app.route('/logout')
