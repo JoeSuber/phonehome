@@ -28,7 +28,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-
+###########################
+#### Database Tables ######
+###########################
 class User(UserMixin, db.Model):
     __tablename__ = "people"
     id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +63,9 @@ class Phone(db.Model):
 
 db.create_all()
 
-
+##########################
+##### Validators #########
+##########################
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -73,7 +77,7 @@ class Unique(object):
         self.model = model
         self.field = field
         if not message:
-            message = u'already exists!'
+            message = u'not validated'
         self.message = message
 
     def __call__(self, form, field):
@@ -82,21 +86,17 @@ class Unique(object):
             raise ValidationError(self.message)
 
 
-class Exists(object):
+class Exists(Unique):
     """ validator for FlaskForm that demands that an item exists """
-    def __init__(self, model, field, message=None):
-        self.model = model
-        self.field = field
-        if not message:
-            message = u'does not exist in database!'
-        self.message = message
-
     def __call__(self, form, field):
         check = self.model.query.filter(self.field == field.data).first()
         if not check:
             raise ValidationError(self.message)
 
 
+##########################
+######## Forms ###########
+##########################
 class BadgeEntryForm(FlaskForm):
     badge = StringField('badge', validators=[InputRequired(),
                                              Length(min=4, max=40),
@@ -139,7 +139,9 @@ class NewDevice(FlaskForm):
     MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=2, max=40)])
     Comment =  StringField('Comment', validators=[Length(min=2, max=80)])
 
-
+###########################
+####### pages #############
+###########################
 def change_ownership(device, username):
     device.TesterName = username
     print("{}, {} is now owned by {}".format(device.MODEL, device.MEID, session['user']))
@@ -232,9 +234,19 @@ def dashboard():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
+        user = User.query.filter_by(form.username.data).first()
         hashed_password = generate_password_hash(form.password.data, method='sha256')
+        print("passes:  {} =? {}".format(user.password, hashed_password))
+        if user.password == hashed_password:
+            login_user(user)
+        render_template(url_for('currentuser'))
+    return render_template('login.html', form=form)
 
-    return render_template('login.html')
+
+@app.route('/currentuser')
+@login_required
+def currentuser():
+    return "<h1> Current user is {} </h1>".format(current_user.username)
 
 
 @app.route('/logout')
@@ -244,4 +256,5 @@ def logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
+
     app.run(debug=True)
