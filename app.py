@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import os
+import pickle, time, os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -54,11 +54,12 @@ class Phone(db.Model):
     MODEL = db.Column(db.String(50))
     Hardware_Type = db.Column(db.String(50))
     Hardware_Version = db.Column(db.String(50))
-    In_Date = db.Column(db.String(50))
+    In_Date = db.Column(db.DateTime(50))
     Archived = db.Column(db.String(50))
-    TesterName = db.Column(db.String(80))
+    TesterId = db.Column(db.Integer)
     DVT_Admin = db.Column(db.String(80))
     MSLPC = db.Column(db.String(50))
+    History = db.Column(db.LargeBinary)
     Comment = db.Column(db.String(255))
 
 db.create_all()
@@ -140,24 +141,17 @@ class NewDevice(FlaskForm):
     Comment =  StringField('Comment', validators=[Length(min=2, max=80)])
 
 ###########################
-####### pages #############
+####### Routes ############
 ###########################
-def change_ownership(device, username):
-    device.TesterName = username
-    print("{}, {} is now owned by {}".format(device.MODEL, device.MEID, session['user']))
-    db.session.commit()
-    return 1
-
 
 # step 1, get the badge to get the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    flash("HELLO")
-    session['user'] = None
+    session['userid'] = None
     form = BadgeEntryForm()
     if form.validate_on_submit():
         user = User.query.filter_by(badge=form.badge.data).first()
-        session['user'] = (user.username, user.badge)
+        session['userid'] = user.id
         return redirect(url_for('meid'))
         #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
     return render_template('index.html', form=form)
@@ -167,20 +161,23 @@ def index():
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
     form = MeidForm()
-    flash("{}, {}".format(session['user'][0], session['user'][1]))
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
-        if device:
-            change_ownership(device, session['user'][0])
-            flash("{}, {} is now owned by {}".format(device.MODEL, device.MEID, session['user'][0]))
-
+        if device and session['userid']:
+            ### change owner of device and append new owner to history blob ####
+            device.TesterId = session['userid']
+            device.History = pickle.dumps(pickle.loads(device.History).append((session['userid'], time.time())))
+            db.session.commit()
+            flash("userid: {} took device: {}".format(session['userid'], device.MEID))
+            session['userid'], device = None, None
         return redirect(url_for('index'))
 
     return render_template('meid.html', form=form)
 
+"""todo: make page that takes MEID and shows history of device"""
 
 @app.route('/newperson', methods=['GET', 'POST'])
-@login_required
+# @login_required
 def newperson():
     form = RegisterForm()
     if app.config['newid']:
@@ -215,6 +212,7 @@ def newdevice():
                            Hardware_Type = form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
                            MSLPC = form.MSLPC.data,
+                           History = pickle.dumps(list()),
                            Comment = form.Comment.data)
         db.session.add(new_device)
         db.session.commit()
