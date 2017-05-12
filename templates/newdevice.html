@@ -24,12 +24,11 @@ New Device
     {{ form.hidden_tag() }}
     {{ wtf.form_field(form.MEID) }}
     {{ wtf.form_field(form.SKU) }}
-      {{ wtf.form_field(form.MODEL) }}
-      {{ wtf.form_field(form.Hardware_Version) }}
-      {{ wtf.form_field(form.Hardware_Type) }}
-      {{ wtf.form_field(form.In_Date) }}
-      {{ wtf.form_field(form.Comment) }}
-      {{ wtf.form_field(form.MSLPC) }}
+    {{ wtf.form_field(form.MODEL) }}
+    {{ wtf.form_field(form.Hardware_Version) }}
+    {{ wtf.form_field(form.Hardware_Type) }}
+    {{ wtf.form_field(form.Comment) }}
+    {{ wtf.form_field(form.SPCMSL) }}
 
     <button class="btn btn-lg btn-primary btn-block" type="submit">Enter</button>
   </form>

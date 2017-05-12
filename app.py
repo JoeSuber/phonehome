@@ -7,6 +7,9 @@ from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pickle, time, os
+from datetime import datetime
+
+# todo: take a look at codepen.io
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -22,6 +25,7 @@ print("Database file located at: {}".format(__sql_inventory_fn__))
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + __sql_inventory_fn__
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['WERKZEUG_DEBUG_PIN'] = False
 Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager()
@@ -34,10 +38,10 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     __tablename__ = "people"
     id = db.Column(db.Integer, primary_key=True)
-    badge = db.Column(db.String(80), unique=True)
+    badge = db.Column(db.String(40), unique=True)
     username = db.Column(db.String(40), unique=True)
     email = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(80))
+    password = db.Column(db.String(94))
     phone_number = db.Column(db.String(12))
     admin = db.Column(db.Boolean)
 
@@ -54,11 +58,11 @@ class Phone(db.Model):
     MODEL = db.Column(db.String(50))
     Hardware_Type = db.Column(db.String(50))
     Hardware_Version = db.Column(db.String(50))
-    In_Date = db.Column(db.DateTime(50))
+    In_Date = db.Column(db.DateTime)
     Archived = db.Column(db.String(50))
     TesterId = db.Column(db.Integer)
     DVT_Admin = db.Column(db.String(80))
-    MSLPC = db.Column(db.String(50))
+    SPCMSL = db.Column(db.String(50))
     History = db.Column(db.LargeBinary)
     Comment = db.Column(db.String(255))
 
@@ -138,7 +142,7 @@ class NewDevice(FlaskForm):
     MODEL =  StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
     Hardware_Version = StringField('Hardware_Version', validators=[Length(min=1, max=40)])
     Hardware_Type =  StringField('Hardware_Type', validators=[Length(min=1, max=40)])
-    MSLPC =  StringField('MSLPC', validators=[InputRequired(), Length(min=2, max=40)])
+    SPCMSL =  StringField('SPC/MSL', validators=[InputRequired(), Length(min=2, max=40)])
     Comment =  StringField('Comment', validators=[Length(min=2, max=80)])
 
 ###########################
@@ -166,8 +170,9 @@ def meid():
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
         if device and session['userid']:
-            ### change owner of device and append new owner to history blob ####
+            # change owner of device and append new owner to history blob ####
             device.TesterId = session['userid']
+            device.In_Date = datetime.utcnow()
             device.History = pickle.dumps(pickle.loads(device.History).append((session['userid'], time.time())))
             db.session.commit()
             flash("userid: {} took device: {}".format(session['userid'], device.MEID))
@@ -184,7 +189,7 @@ def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data)
-        print(form.password.data)
+        print("*{}*".format(hashed_password))
         logged = User(badge=form.badge.data,
                       email=form.email.data,
                       username = form.username.data,
@@ -209,9 +214,12 @@ def newdevice():
                            MODEL = form.MODEL.data,
                            Hardware_Type = form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
-                           MSLPC = form.MSLPC.data,
-                           History = pickle.dumps(list()),
-                           Comment = form.Comment.data)
+                           SPCMSL = form.SPCMSL.data,
+                           History = pickle.dumps(list((login_manager.id_attribute, time.time()))),
+                           Comment = form.Comment.data,
+                           In_Date = datetime.utcnow(),
+                           DVT_Admin = login_manager.id_attribute)
+
         db.session.add(new_device)
         db.session.commit()
         return redirect(url_for('newdevice'))
@@ -230,14 +238,12 @@ def dashboard():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        print(form.username.data)
+        print("form.username.data: {}".format(form.username.data))
         user = User.query.filter_by(username=form.username.data).first()
-        print("user pw: {}".format(user.password))
-        print("form pw: {}".format(form.password.data))
-
         if check_password_hash(user.password, form.password.data):
             print("LOGGED IN! {}".format(user.email))
             login_user(user)
+            print(login_manager.id_attribute)
         redirect(url_for('currentuser'))
     return render_template('login.html', form=form)
 
