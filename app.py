@@ -125,7 +125,8 @@ class RegisterForm(FlaskForm):
                                              Unique(User, User.badge, message="Badge number already assigned!")])
     username = StringField('username', validators=[InputRequired(), Length(min=4, max=15),
                                                    Unique(User, User.username, message="Please choose another name")])
-    password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
+    password = PasswordField('password', validators=[InputRequired(),
+                                                     Length(min=8, max=80, message="Passwords are 8-80 characters")])
     phone_number = StringField('phone xxx-xxx-xxxx', validators=[Length(min=4, max=12)])
     admin = BooleanField('admin')
 
@@ -160,6 +161,7 @@ def index():
 # step 2, get the device, change owner
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
+    flash("session user = {}".format(session['userid']))
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
@@ -180,11 +182,9 @@ def meid():
 # @login_required
 def newperson():
     form = RegisterForm()
-    if app.config['newid']:
-        form.badge.data = app.config['newid']
-
     if form.validate_on_submit():
-        hashed_password = generate_password_hash(form.password.data, method='sha256')
+        hashed_password = generate_password_hash(form.password.data)
+        print(form.password.data)
         logged = User(badge=form.badge.data,
                       email=form.email.data,
                       username = form.username.data,
@@ -193,10 +193,8 @@ def newperson():
                       admin = form.admin.data)
         db.session.add(logged)
         db.session.commit()
-        if app.config['meid'] == None:          # no device presented yet
-            return redirect(url_for('meid'))
-        else:
-            return redirect(url_for('target_badge'))    # have user & device, go get target
+        print("NEW USER!  {}".format(logged.username))
+        flash("created new user: {}".format(logged.username))
 
     return render_template('signup.html', form=form)
 
@@ -232,12 +230,15 @@ def dashboard():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(form.username.data).first()
-        hashed_password = generate_password_hash(form.password.data, method='sha256')
-        print("passes:  {} =? {}".format(user.password, hashed_password))
-        if user.password == hashed_password:
+        print(form.username.data)
+        user = User.query.filter_by(username=form.username.data).first()
+        print("user pw: {}".format(user.password))
+        print("form pw: {}".format(form.password.data))
+
+        if check_password_hash(user.password, form.password.data):
+            print("LOGGED IN! {}".format(user.email))
             login_user(user)
-        render_template(url_for('currentuser'))
+        redirect(url_for('currentuser'))
     return render_template('login.html', form=form)
 
 
