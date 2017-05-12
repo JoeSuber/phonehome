@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import pickle, time, os
+import pickle, os
 from datetime import datetime
 
 # todo: take a look at codepen.io
@@ -173,7 +173,7 @@ def meid():
             # change owner of device and append new owner to history blob ####
             device.TesterId = session['userid']
             device.In_Date = datetime.utcnow()
-            device.History = pickle.dumps(pickle.loads(device.History).append((session['userid'], time.time())))
+            device.History = pickle.dumps(pickle.loads(device.History).append((session['userid'], datetime.utcnow())))
             db.session.commit()
             flash("userid: {} took device: {}".format(session['userid'], device.MEID))
             session['userid'], device = None, None
@@ -181,7 +181,10 @@ def meid():
 
     return render_template('meid.html', form=form)
 
-"""todo: make page that takes MEID and shows history of device"""
+"""
+    todo: make page that takes MEID and shows history of device
+    todo: function for taking device.History list into json (or something)
+"""
 
 @app.route('/newperson', methods=['GET', 'POST'])
 # @login_required
@@ -215,10 +218,10 @@ def newdevice():
                            Hardware_Type = form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
                            SPCMSL = form.SPCMSL.data,
-                           History = pickle.dumps(list((login_manager.id_attribute, time.time()))),
+                           History = pickle.dumps(list((login_manager.id_attribute, datetime.utcnow()))),
                            Comment = form.Comment.data,
                            In_Date = datetime.utcnow(),
-                           DVT_Admin = login_manager.id_attribute)
+                           DVT_Admin = current_user.id)
 
         db.session.add(new_device)
         db.session.commit()
@@ -231,7 +234,7 @@ def newdevice():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', name=current_user.username)
+    return render_template('dashboard.html', name=current_user)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -243,8 +246,8 @@ def login():
         if check_password_hash(user.password, form.password.data):
             print("LOGGED IN! {}".format(user.email))
             login_user(user)
-            print(login_manager.id_attribute)
-        redirect(url_for('currentuser'))
+            print("current user id = {}".format(current_user.id))
+            redirect(url_for('currentuser'))
     return render_template('login.html', form=form)
 
 
@@ -261,5 +264,4 @@ def logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-
     app.run(debug=True)
