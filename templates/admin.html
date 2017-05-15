@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "navbar.html" as navbar %}
+{% import "flasher.html" as flasher %}
+
+{% block title %}
+Administration
+{% endblock %}
+
+{% block styles %}
+{{super()}}
+<link rel="stylesheet" href="{{url_for('.static', filename='style.css')}}">
+{% endblock %}
+
+{% block content %}
+
+{{ navbar }}
+
+<div class="container">
+
+    {{ flasher }}
+
+    <li><a href="{{ url_for('newdevice') }}">Add New Devices</a></li>
+    <li><a href="{{ url_for('newperson') }}">Add New People</a></li>
+    <li><a href="{{ url_for('index') }}">Enter Badge & MEID</a></li>
+
+</div> <!-- /container -->
+{% endblock %}

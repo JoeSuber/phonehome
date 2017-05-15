@@ -195,7 +195,6 @@ def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data)
-        print("*{}*".format(hashed_password))
         logged = User(badge=form.badge.data,
                       email=form.email.data,
                       username = form.username.data,
@@ -234,10 +233,10 @@ def newdevice():
     return render_template('newdevice.html', form=form)
 
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html', name=current_user)
+@app.route('/admin')
+#@login_required
+def admin():
+    return render_template('admin.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -251,7 +250,7 @@ def login():
             login_user(user, remember=True)
             session['userid'] = user.id
             print("current user id = {}".format(current_user.id))
-            redirect(url_for('/dashboard'))
+            redirect(url_for('admin'))
     return render_template('login.html', form=form)
 
 
