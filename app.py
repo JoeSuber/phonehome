@@ -169,11 +169,14 @@ def meid():
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
+        history = pickle.loads(device.History)
         if device and session['userid']:
             # change owner of device and append new owner to history blob ####
             device.TesterId = session['userid']
             device.In_Date = datetime.utcnow()
-            device.History = pickle.dumps(pickle.loads(device.History).append((session['userid'], datetime.utcnow())))
+            history = pickle.loads(device.History)
+            history.append((session['userid'], datetime.utcnow()))
+            device.History = pickle.dumps(history)
             db.session.commit()
             flash("userid: {} took device: {}".format(session['userid'], device.MEID))
             session['userid'], device = None, None
@@ -218,7 +221,7 @@ def newdevice():
                            Hardware_Type = form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
                            SPCMSL = form.SPCMSL.data,
-                           History = pickle.dumps(list((login_manager.id_attribute, datetime.utcnow()))),
+                           History = pickle.dumps([(session['userid'], datetime.utcnow())]),
                            Comment = form.Comment.data,
                            In_Date = datetime.utcnow(),
                            DVT_Admin = current_user.id)
@@ -245,9 +248,10 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if check_password_hash(user.password, form.password.data):
             print("LOGGED IN! {}".format(user.email))
-            login_user(user)
+            login_user(user, remember=True)
+            session['userid'] = user.id
             print("current user id = {}".format(current_user.id))
-            redirect(url_for('currentuser'))
+            redirect(url_for('/dashboard'))
     return render_template('login.html', form=form)
 
 
