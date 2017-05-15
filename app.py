@@ -6,7 +6,7 @@ from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import pickle, os
+import pickle, os, csv
 from datetime import datetime
 
 # todo: take a look at codepen.io
@@ -195,8 +195,8 @@ def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data)
-        logged = User(badge=form.badge.data,
-                      email=form.email.data,
+        logged = User(badge = form.badge.data,
+                      email = form.email.data,
                       username = form.username.data,
                       password = hashed_password,
                       phone_number = form.phone_number.data,

@@ -16,7 +16,7 @@ width: 300px;
 }
 .login-screen {
 background-color: #FFF;
-padding: 20px;
+padding: 40px;
 border-radius: 5px
 }
 
@@ -33,14 +33,14 @@ margin-bottom: 10px;
 }
 
 input {
-text-align: center;
+text-align: left;
 background-color: #ECF0F1;
 border: 2px solid transparent;
 border-radius: 3px;
 font-size: 16px;
 font-weight: 200;
 padding: 10px 0;
-width: 250px;
+width: 150px;
 transition: border .5s;
 }
 
@@ -71,7 +71,7 @@ box-shadow: none;
 }
 
 .login-link {
-  font-size: 12px;
+  font-size: 16px;
   color: #444;
   display: block;
 	margin-top: 12px;
