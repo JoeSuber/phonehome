@@ -20,10 +20,16 @@ Administration
 <div class="container">
 
     {{ flasher }}
+    <li>  -  </li>
 
     <li><a href="{{ url_for('newdevice') }}">Add New Devices</a></li>
+    <li><a href="{{ url_for('editdevice') }}">Edit a Device</a></li>
+    <li>  - </li>
     <li><a href="{{ url_for('newperson') }}">Add New People</a></li>
-    <li><a href="{{ url_for('index') }}">Enter Badge & MEID</a></li>
+    <li><a href="{{ url_for('editperson') }}">Edit a Person</a></li>
+    <li>  - </li>
+    <li><a href="{{ url_for('index') }}">Enter Badge & MEID to change ownership</a></li>
+
 
 </div> <!-- /container -->
 {% endblock %}

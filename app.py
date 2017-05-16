@@ -148,7 +148,6 @@ class NewDevice(FlaskForm):
 ###########################
 ####### Routes ############
 ###########################
-
 # step 1, get the badge to get the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -234,9 +233,41 @@ def newdevice():
 
 
 @app.route('/admin')
-#@login_required
+@login_required
 def admin():
-    return render_template('admin.html')
+    user = User.query.get(int(current_user.id))
+    print("{} user admin: {}".format(user.username, user.admin))
+    if user.admin:
+        return render_template('admin.html')
+    print("NOT an admin: {}".format(user.username))
+    return redirect(url_for('login'))
+
+
+@app.route('/editdevice', methods=['GET', 'POST'])
+@login_required
+def editdevice():
+    form = MeidForm()
+    print("current_user.id = {}".format(current_user.id))
+    user = User.query.get(int(current_user.id))
+    print("user.admin = {}".format(user.admin))
+    if form.validate_on_submit() and user.admin:
+        print("checking MEID {}".format(form.MEID))
+        device = Phone.query.filter_by(form.MEID.data).first()
+        form = NewDevice()
+        print("device = {}".format(device))
+
+    return render_template('meid.html', form=form)
+
+
+@app.route('/editperson', methods=['GET', 'POST'])
+@login_required
+def editperson():
+    form = BadgeEntryForm()
+    user = User.query.get(int(current_user.id))
+    if form.validate_on_submit():
+        # logic for inputing user
+        pass
+    return render_template('index.html', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -254,7 +285,7 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/currentuser')
+@app.route('/currentuser', methods=['GET', 'POST'])
 @login_required
 def currentuser():
     return "<h1> Current user is {} </h1>".format(current_user.username)
