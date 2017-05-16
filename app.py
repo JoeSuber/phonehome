@@ -1,7 +1,7 @@
-from flask import Flask, render_template, redirect, url_for, flash, session, g, get_flashed_messages
+from flask import Flask, render_template, redirect, url_for, flash, session, request, g, get_flashed_messages
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
-from wtforms import StringField, PasswordField, BooleanField, ValidationError
+from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy  import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -240,58 +240,63 @@ def admin():
     if user.admin:
         return render_template('admin.html')
     print("NOT an admin: {}".format(user.username))
+    flash("NOT an admin: {}".format(user.username))
     return redirect(url_for('login'))
+
+
+@app.route('/meidedit', methods=['GET', 'POST'])
+@login_required
+def meidedit():
+    form = MeidForm()
+    print("current_user.id = {}".format(current_user.id))
+    user = User.query.get(int(current_user.id))
+    print("user.admin = {}".format(user.admin))
+
+    if form.validate_on_submit() and user.admin:
+        print("checking MEID {}".format(form.meid.data))
+        session['editingMEID'] = form.meid.data
+        return redirect(url_for('editdevice'))
+    return render_template('meidedit.html', form=form)
 
 
 @app.route('/editdevice', methods=['GET', 'POST'])
 @login_required
 def editdevice():
-    form = MeidForm()
-    print("current_user.id = {}".format(current_user.id))
-    user = User.query.get(int(current_user.id))
-    print("user.admin = {}".format(user.admin))
-    if form.validate_on_submit() and user.admin:
-        print("checking MEID {}".format(form.MEID))
-        device = Phone.query.filter_by(form.MEID.data).first()
-        # input the known items to the new form
-        newform = NewDevice(MEID=device.MEID,
-                            SKU=device.SKU,
-                            MODEL=device.MODEL,
-                            Hardware_Type=device.Hardware_Type,
-                            Hardware_Version=device.Hardware_Version,
-                            SPCMSL=device.SPCMSL,
-                            Comment=device.Comment)
-        print("device meid = {}".format(device.MEID))
-        if newform.validate_on_submit():
-            history = pickle.loads(device.History)
-            history.append((current_user.id, datetime.utcnow()))
-            print("updating device: {}".format(device.MEID))
-            updated_device = Phone(id=device.id,
-                                    MEID=device.MEID,
-                                    SKU=newform.SKU.data,
-                                    MODEL=newform.MODEL.data,
-                                    Hardware_Type=newform.Hardware_Type.data,
-                                    Hardware_Version=newform.Hardware_Version.data,
-                                    SPCMSL=newform.SPCMSL.data,
-                                    Comment=newform.Comment.data,
-                                    In_Date=device.In_Date,
-                                    DVT_Admin=device.DVT_Admin)
-            db.session.update(updated_device)
-            db.session.commit()
-        render_template('editdevice.html', form=newform)
-
-    return render_template('meid.html', form=form)
-
-
-@app.route('/editperson', methods=['GET', 'POST'])
-@login_required
-def editperson():
-    form = BadgeEntryForm()
-    user = User.query.get(int(current_user.id))
-    if form.validate_on_submit():
-        # logic for inputing user
-        pass
-    return render_template('index.html', form=form)
+    try:
+        device = Phone.query.filter_by(MEID=session['editingMEID']).first()
+        print("comment: {}".format(device.Comment))
+    except KeyError:
+        return redirect(url_for('meidedit'))
+    newform = NewDevice(MEID=device.MEID,
+                        SKU=device.SKU,
+                        MODEL=device.MODEL,
+                        Hardware_Type=device.Hardware_Type,
+                        Hardware_Version=device.Hardware_Version,
+                        SPCMSL=device.SPCMSL,
+                        Comment=device.Comment)
+    print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
+    if newform.validate_on_submit():
+        history = pickle.loads(device.History)
+        history.append((current_user.id, datetime.utcnow()))
+        print("updating device: {}".format(device.MEID))
+        updated_device = Phone(id=device.id,
+                                MEID=device.MEID,
+                                SKU=newform.SKU.data,
+                                MODEL=newform.MODEL.data,
+                                Hardware_Type=newform.Hardware_Type.data,
+                                Hardware_Version=newform.Hardware_Version.data,
+                                SPCMSL=newform.SPCMSL.data,
+                                Comment=newform.Comment.data,
+                                History=pickle.dumps(history),
+                                In_Date=device.In_Date,
+                                DVT_Admin=device.DVT_Admin)
+        db.session.update(updated_device)
+        db.session.commit()
+        used = session.pop('editingMEID')
+        flash(" {} MEID = {} was updated".format(updated_device.SKU, used))
+        print(" {} MEID = {} was updated".format(updated_device.SKU, used))
+        return render_template('admin.html')
+    return render_template('editdevice.html', form=newform)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -305,7 +310,11 @@ def login():
             login_user(user, remember=True)
             session['userid'] = user.id
             print("current user id = {}".format(current_user.id))
-            redirect(url_for('admin'))
+            print("request.args = {}".format(request.args))
+            return redirect(request.args.get('next'))
+
+        print("LOGIN FAILED")
+        flash("LOGIN FAILED")
     return render_template('login.html', form=form)
 
 
