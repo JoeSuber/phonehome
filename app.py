@@ -18,8 +18,8 @@ __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
 __sql_inventory_fn__ = os.getcwd() + os.sep + __dbfn__ + __sqlext__
 
-# for when windows thinks the home directory is somewhere inconvenient
-__sql_inventory_fn__ = "C:\\Users\\2053_HSUF\\PycharmProjects\\phonehome\\DVTCinventory.sqlite"
+if os.name is not 'posix':
+    __sql_inventory_fn__ = "C:\\Users\\2053_HSUF\\PycharmProjects\\phonehome\\DVTCinventory.sqlite"
 
 print("Database file located at: {}".format(__sql_inventory_fn__))
 
@@ -31,6 +31,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
 
 ###########################
 #### Database Tables ######
@@ -138,12 +139,12 @@ class RegisterForm(FlaskForm):
 class NewDevice(FlaskForm):
     MEID = StringField('MEID', validators=[InputRequired(), Length(min=10, max=24),
                                            Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
-    SKU =  StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
-    MODEL =  StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
-    Hardware_Version = StringField('Hardware_Version', validators=[Length(min=1, max=40)])
-    Hardware_Type =  StringField('Hardware_Type', validators=[Length(min=1, max=40)])
-    SPCMSL =  StringField('SPC/MSL', validators=[InputRequired(), Length(min=2, max=40)])
-    Comment =  StringField('Comment', validators=[Length(min=2, max=80)])
+    SKU = StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
+    MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
+    Hardware_Version = StringField('Hardware Version', validators=[Length(min=1, max=40)])
+    Hardware_Type = StringField('Hardware Type', validators=[Length(min=1, max=40)])
+    SPCMSL = StringField('SPC/MSL', validators=[InputRequired(), Length(min=2, max=40)])
+    Comment = StringField('Comment', validators=[Length(min=2, max=80)])
 
 ###########################
 ####### Routes ############
