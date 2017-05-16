@@ -253,8 +253,32 @@ def editdevice():
     if form.validate_on_submit() and user.admin:
         print("checking MEID {}".format(form.MEID))
         device = Phone.query.filter_by(form.MEID.data).first()
-        form = NewDevice()
-        print("device = {}".format(device))
+        # input the known items to the new form
+        newform = NewDevice(MEID=device.MEID,
+                            SKU=device.SKU,
+                            MODEL=device.MODEL,
+                            Hardware_Type=device.Hardware_Type,
+                            Hardware_Version=device.Hardware_Version,
+                            SPCMSL=device.SPCMSL,
+                            Comment=device.Comment)
+        print("device meid = {}".format(device.MEID))
+        if newform.validate_on_submit():
+            history = pickle.loads(device.History)
+            history.append((current_user.id, datetime.utcnow()))
+            print("updating device: {}".format(device.MEID))
+            updated_device = Phone(id=device.id,
+                                    MEID=device.MEID,
+                                    SKU=newform.SKU.data,
+                                    MODEL=newform.MODEL.data,
+                                    Hardware_Type=newform.Hardware_Type.data,
+                                    Hardware_Version=newform.Hardware_Version.data,
+                                    SPCMSL=newform.SPCMSL.data,
+                                    Comment=newform.Comment.data,
+                                    In_Date=device.In_Date,
+                                    DVT_Admin=device.DVT_Admin)
+            db.session.update(updated_device)
+            db.session.commit()
+        render_template('editdevice.html', form=newform)
 
     return render_template('meid.html', form=form)
 
