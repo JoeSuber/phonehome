@@ -344,9 +344,11 @@ _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
 
 
 def csvimport(filename=None):
+    """ assumes users have kept columns in the list order """
     if not filename:
         filename = os.path.join(os.getcwd(), "samsung.csv")
     columns = _columns
+    item_count = 0
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for line in spamreader:
@@ -358,18 +360,22 @@ def csvimport(filename=None):
                                Hardware_Type=row['Hardware_Type'],
                                Hardware_Version=row['Hardware_Version'],
                                MSL=row['MSL'],
-                               History=pickle.dumps([(0, datetime.utcnow())]),
+                               History=pickle.dumps([(row['DVT_Admin'], datetime.utcnow())]),
                                Comment=row['Comment'],
                                In_Date=row['In_Date'],
+                               Archived=row['Archived'],
+                               TesterId=row['TesterId'],
                                DVT_Admin=row['DVT_Admin'])
+            item_count += 1
             db.session.add(new_device)
         db.session.commit()
+    print("imported {} items".format(item_count))
 
 
 def csvexport(outfile=None):
-    """ create a template using the _column list"""
+    """ create a spreadsheet template for users using the _column list """
     if not outfile:
-        outfile=os.path.join(os.getcwd(), "newsheet.csv")
+        outfile = os.path.join(os.getcwd(), "newsheet.csv")
     with open(outfile, 'w', newline='') as output:
         spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(_columns)
