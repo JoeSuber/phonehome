@@ -272,6 +272,7 @@ def editdevice():
         print("comment: {}".format(device.Comment))
     except KeyError:
         return redirect(url_for('meidedit'))
+    # fill is some form blanks for user:
     newform = NewDevice(MEID=device.MEID,
                         SKU=device.SKU,
                         MODEL=device.MODEL,
