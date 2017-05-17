@@ -345,8 +345,8 @@ def logout():
 def csvimport(filename=None):
     if not filename:
         filename = os.path.join(os.getcwd(), "samsung.csv")
-    columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
-               'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'SPCMSL', 'Comment']
+    columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version', 'In_Date', 'Archived', 'TesterId',
+               'DVT_Admin', 'SPCMSL', 'Comment']
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
         for row in spamreader:
