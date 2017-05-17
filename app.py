@@ -10,6 +10,9 @@ import pickle, os, csv
 from datetime import datetime
 
 # todo: take a look at codepen.io
+###################################################################################
+# DONT FORGET! to uncomment the '@login_required' for newperson() upon deployment
+###################################################################################
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -57,6 +60,7 @@ class Phone(db.Model):
     MEID = db.Column(db.String(28), unique=True)
     SKU = db.Column(db.String(50))
     MODEL = db.Column(db.String(50))
+    OEM = db.Column(db.String(16))
     Hardware_Type = db.Column(db.String(50))
     Hardware_Version = db.Column(db.String(50))
     In_Date = db.Column(db.DateTime)
@@ -137,6 +141,7 @@ class RegisterForm(FlaskForm):
 
 
 class NewDevice(FlaskForm):
+    OEM = StringField('OEM', validators=[InputRequired()])
     MEID = StringField('MEID', validators=[InputRequired(), Length(min=10, max=24),
                                            Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
     SKU = StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
@@ -205,6 +210,7 @@ def newperson():
         db.session.commit()
         print("NEW USER!  {}".format(logged.username))
         flash("created new user: {}".format(logged.username))
+        return redirect(url_for('admin'))
 
     return render_template('signup.html', form=form)
 
@@ -214,7 +220,8 @@ def newperson():
 def newdevice():
     form = NewDevice()
     if form.validate_on_submit():
-        new_device = Phone(MEID = form.MEID.data,
+        new_device = Phone(OEM = form.OEM.data,
+                           MEID = form.MEID.data,
                            SKU = form.SKU.data,
                            MODEL = form.MODEL.data,
                            Hardware_Type = form.Hardware_Type.data,
@@ -331,6 +338,19 @@ def logout():
     logout_user()
     session['userid'] = None
     return redirect(url_for('index'))
+
+#########################
+###### Import Data ######
+#########################
+def csvimport(filename=None):
+    if not filename:
+        filename = os.path.join(os.getcwd(), "samsung.csv")
+    columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
+               'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'SPCMSL', 'Comment']
+    with open(filename, newline='') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        for row in spamreader:
+            print(', '.join(row))
 
 if __name__ == '__main__':
     app.run(debug=True)
