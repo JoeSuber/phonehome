@@ -49,9 +49,6 @@ class User(UserMixin, db.Model):
     phone_number = db.Column(db.String(12))
     admin = db.Column(db.Boolean)
 
-# fake_user = User(badge='12345', username='joesuber', email='', password='12345',
-#                phone_number='913-203-5347', admin=True)
-
 
 class Phone(db.Model):
     """  will add relations to User ...http://flask-sqlalchemy.pocoo.org/2.1/quickstart/"""
@@ -151,12 +148,13 @@ class NewDevice(FlaskForm):
     MSL = StringField('MSL', validators=[InputRequired(), Length(min=2, max=40)])
     Comment = StringField('Comment', validators=[Length(min=2, max=80)])
 
+
 ###########################
 ####### Routes ############
 ###########################
-# step 1, get the badge to get the user
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # step 1, get the badge to get the user
     session['userid'] = None
     form = BadgeEntryForm()
     if form.validate_on_submit():
@@ -167,9 +165,9 @@ def index():
     return render_template('index.html', form=form)
 
 
-# step 2, get the device, change owner
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
+    # step 2, get the device, change owner
     flash("session user = {}".format(session['userid']))
     form = MeidForm()
     if form.validate_on_submit():
