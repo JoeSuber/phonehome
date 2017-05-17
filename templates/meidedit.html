@@ -18,7 +18,7 @@ Device MEID to Edit
 {% endblock %}
 
     <div class="container">
-
+    {{ flasher }}
       <form class="form-signin" method="POST" action="/meidedit">
         <h2 class="form-signin-heading">Enter Device MEID to Edit</h2>
         {{ form.hidden_tag() }}

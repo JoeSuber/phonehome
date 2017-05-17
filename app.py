@@ -342,15 +342,30 @@ def logout():
 #########################
 ###### Import Data ######
 #########################
+_columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
+           'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'SPCMSL', 'Comment']
+
+
 def csvimport(filename=None):
     if not filename:
         filename = os.path.join(os.getcwd(), "samsung.csv")
-    columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version', 'In_Date', 'Archived', 'TesterId',
-               'DVT_Admin', 'SPCMSL', 'Comment']
+    columns = _columns
     with open(filename, newline='') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in spamreader:
-            print(', '.join(row))
+            print("*****")
+            for item in row:
+                print(item)
+
+
+def csvexport(outfile=None):
+    """ create a template using the _column list"""
+    if not outfile:
+        outfile=os.path.join(os.getcwd(), "newsheet.csv")
+    with open(outfile, 'w', newline='') as output:
+        spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(_columns)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
