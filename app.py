@@ -1,6 +1,6 @@
-from flask import Flask, render_template, redirect, url_for, flash, session, request, g, get_flashed_messages
+from flask import Flask, render_template, redirect, url_for, flash, session, request
 from flask_bootstrap import Bootstrap
-from flask_wtf import FlaskForm 
+from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
