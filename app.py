@@ -18,7 +18,7 @@ __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
 __sql_inventory_fn__ = os.getcwd() + os.sep + __dbfn__ + __sqlext__
 
-if os.name is not 'posix':
+if os.name is 'nt':
     __sql_inventory_fn__ = "C:\\Users\\2053_HSUF\\PycharmProjects\\phonehome\\DVTCinventory.sqlite"
 
 print("Database file located at: {}".format(__sql_inventory_fn__))
@@ -303,16 +303,20 @@ def editdevice():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    if request.method == 'GET':
+        session['sent_from'] = request.args.get('next')
+        print("sent from = {}".format(session['sent_from']))
     if form.validate_on_submit():
-        print("form.username.data: {}".format(form.username.data))
         user = User.query.filter_by(username=form.username.data).first()
         if check_password_hash(user.password, form.password.data):
             print("LOGGED IN! {}".format(user.email))
             login_user(user, remember=True)
             session['userid'] = user.id
+            sent_from = session['sent_from']
+            session['sent_from'] = None
             print("current user id = {}".format(current_user.id))
-            print("request.args = {}".format(request.args))
-            return redirect(request.args.get('next'))
+            print("redirecting to {}".format(sent_from))
+            return redirect(sent_from or url_for('index'))
 
         print("LOGIN FAILED")
         flash("LOGIN FAILED")
