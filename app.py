@@ -163,7 +163,7 @@ def index():
         user = User.query.filter_by(badge=form.badge.data).first()
         session['userid'] = user.id
         return redirect(url_for('meid'))
-        #return '<h1>' + form.username.data + ' ' + form.password.data + '</h1>'
+
     return render_template('index.html', form=form)
 
 
@@ -174,7 +174,6 @@ def meid():
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
-        history = pickle.loads(device.History)
         if device and session['userid']:
             # change owner of device and append new owner to history blob ####
             device.TesterId = session['userid']
@@ -193,6 +192,7 @@ def meid():
     todo: make page that takes MEID and shows history of device
     todo: function for taking device.History list into json (or something)
 """
+
 
 @app.route('/newperson', methods=['GET', 'POST'])
 # @login_required
@@ -235,7 +235,6 @@ def newdevice():
         db.session.add(new_device)
         db.session.commit()
         return redirect(url_for('newdevice'))
-        #return '<h1>' + form.username.data + ' ' + form.email.data + ' ' + form.password.data + '</h1>'
 
     return render_template('newdevice.html', form=form)
 
@@ -256,10 +255,8 @@ def admin():
 @login_required
 def meidedit():
     form = MeidForm()
-    print("current_user.id = {}".format(current_user.id))
     user = User.query.get(int(current_user.id))
     print("user.admin = {}".format(user.admin))
-
     if form.validate_on_submit() and user.admin:
         print("checking MEID {}".format(form.meid.data))
         session['editingMEID'] = form.meid.data
@@ -288,13 +285,13 @@ def editdevice():
         history.append((current_user.id, datetime.utcnow()))
         print(history)
         print("updating device: {}".format(device.MEID))
-        device.SKU=newform.SKU.data
-        device.MODEL=newform.MODEL.data
-        device.Hardware_Type=newform.Hardware_Type.data
-        device.Hardware_Version=newform.Hardware_Version.data
-        device.SPCMSL=newform.SPCMSL.data
-        device.Comment=newform.Comment.data
-        device.History=pickle.dumps(history)
+        device.SKU = newform.SKU.data
+        device.MODEL = newform.MODEL.data
+        device.Hardware_Type = newform.Hardware_Type.data
+        device.Hardware_Version = newform.Hardware_Version.data
+        device.SPCMSL = newform.SPCMSL.data
+        device.Comment = newform.Comment.data
+        device.History = pickle.dumps(history)
         db.session.commit()
         used = session.pop('editingMEID')
         flash(" {} MEID = {} was updated".format(device.SKU, used))
@@ -352,9 +349,21 @@ def csvimport(filename=None):
     columns = _columns
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in spamreader:
-            rowdict = {label: item for label, item in zip(_columns, row)}
-            print(rowdict)
+        for line in spamreader:
+            row = {label: item for label, item in zip(columns, line)}
+            new_device = Phone(OEM=row['OEM'],
+                               MEID=row['MEID'],
+                               SKU=row['SKU'],
+                               MODEL=row['MODEL'],
+                               Hardware_Type=row['Hardware_Type'],
+                               Hardware_Version=row['Hardware_Version'],
+                               MSL=row['MSL'],
+                               History=pickle.dumps([(0, datetime.utcnow())]),
+                               Comment=row['Comment'],
+                               In_Date=row['In_Date'],
+                               DVT_Admin=row['DVT_Admin'])
+            db.session.add(new_device)
+        db.session.commit()
 
 
 def csvexport(outfile=None):
