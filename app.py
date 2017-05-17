@@ -67,7 +67,7 @@ class Phone(db.Model):
     Archived = db.Column(db.String(50))
     TesterId = db.Column(db.Integer)
     DVT_Admin = db.Column(db.String(80))
-    SPCMSL = db.Column(db.String(50))
+    MSL = db.Column(db.String(50))
     History = db.Column(db.LargeBinary)
     Comment = db.Column(db.String(255))
 
@@ -148,7 +148,7 @@ class NewDevice(FlaskForm):
     MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
     Hardware_Version = StringField('Hardware Version', validators=[Length(min=1, max=40)])
     Hardware_Type = StringField('Hardware Type', validators=[Length(min=1, max=40)])
-    SPCMSL = StringField('SPC/MSL', validators=[InputRequired(), Length(min=2, max=40)])
+    MSL = StringField('MSL', validators=[InputRequired(), Length(min=2, max=40)])
     Comment = StringField('Comment', validators=[Length(min=2, max=80)])
 
 ###########################
@@ -226,7 +226,7 @@ def newdevice():
                            MODEL = form.MODEL.data,
                            Hardware_Type = form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
-                           SPCMSL = form.SPCMSL.data,
+                           MSL = form.MSL.data,
                            History = pickle.dumps([(session['userid'], datetime.utcnow())]),
                            Comment = form.Comment.data,
                            In_Date = datetime.utcnow(),
@@ -280,7 +280,7 @@ def editdevice():
                         MODEL=device.MODEL,
                         Hardware_Type=device.Hardware_Type,
                         Hardware_Version=device.Hardware_Version,
-                        SPCMSL=device.SPCMSL,
+                        MSL=device.SPCMSL,
                         Comment=device.Comment)
     print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
     if request.method == "POST":
@@ -343,7 +343,7 @@ def logout():
 ###### Import Data ######
 #########################
 _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
-           'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'SPCMSL', 'Comment']
+           'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
 
 def csvimport(filename=None):
@@ -353,9 +353,8 @@ def csvimport(filename=None):
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in spamreader:
-            print("*****")
-            for item in row:
-                print(item)
+            rowdict = {label: item for label, item in zip(_columns, row)}
+            print(rowdict)
 
 
 def csvexport(outfile=None):
