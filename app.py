@@ -3,7 +3,7 @@ from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm 
 from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
-from flask_sqlalchemy  import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pickle, os, csv
@@ -276,26 +276,22 @@ def editdevice():
                         SPCMSL=device.SPCMSL,
                         Comment=device.Comment)
     print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
-    if newform.validate_on_submit():
+    if request.method == "POST":
         history = pickle.loads(device.History)
         history.append((current_user.id, datetime.utcnow()))
+        print(history)
         print("updating device: {}".format(device.MEID))
-        updated_device = Phone(id=device.id,
-                                MEID=device.MEID,
-                                SKU=newform.SKU.data,
-                                MODEL=newform.MODEL.data,
-                                Hardware_Type=newform.Hardware_Type.data,
-                                Hardware_Version=newform.Hardware_Version.data,
-                                SPCMSL=newform.SPCMSL.data,
-                                Comment=newform.Comment.data,
-                                History=pickle.dumps(history),
-                                In_Date=device.In_Date,
-                                DVT_Admin=device.DVT_Admin)
-        db.session.update(updated_device)
+        device.SKU=newform.SKU.data
+        device.MODEL=newform.MODEL.data
+        device.Hardware_Type=newform.Hardware_Type.data
+        device.Hardware_Version=newform.Hardware_Version.data
+        device.SPCMSL=newform.SPCMSL.data
+        device.Comment=newform.Comment.data
+        device.History=pickle.dumps(history)
         db.session.commit()
         used = session.pop('editingMEID')
-        flash(" {} MEID = {} was updated".format(updated_device.SKU, used))
-        print(" {} MEID = {} was updated".format(updated_device.SKU, used))
+        flash(" {} MEID = {} was updated".format(device.SKU, used))
+        print(" {} MEID = {} was updated".format(device.SKU, used))
         return render_template('admin.html')
     return render_template('editdevice.html', form=newform)
 
@@ -333,6 +329,7 @@ def currentuser():
 @login_required
 def logout():
     logout_user()
+    session['userid'] = None
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

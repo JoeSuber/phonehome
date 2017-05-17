@@ -26,7 +26,7 @@ color: #777;
 }
 
 .login-form {
-text-align: center;
+text-align: left;
 }
 .control-group {
 margin-bottom: 10px;
@@ -72,7 +72,7 @@ box-shadow: none;
 
 .login-link {
   font-size: 16px;
-  color: #444;
+  color: #ffff;
   display: block;
 	margin-top: 12px;
 }
