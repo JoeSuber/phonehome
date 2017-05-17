@@ -277,7 +277,7 @@ def editdevice():
                         MODEL=device.MODEL,
                         Hardware_Type=device.Hardware_Type,
                         Hardware_Version=device.Hardware_Version,
-                        MSL=device.SPCMSL,
+                        MSL=device.MSL,
                         Comment=device.Comment)
     print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
     if request.method == "POST":
@@ -289,7 +289,7 @@ def editdevice():
         device.MODEL = newform.MODEL.data
         device.Hardware_Type = newform.Hardware_Type.data
         device.Hardware_Version = newform.Hardware_Version.data
-        device.SPCMSL = newform.SPCMSL.data
+        device.MSL = newform.MSL.data
         device.Comment = newform.Comment.data
         device.History = pickle.dumps(history)
         db.session.commit()
