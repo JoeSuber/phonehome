@@ -359,6 +359,11 @@ def csvexport(outfile=None):
     print("spreadsheet columns exported to: {}".format(outfile))
 
 
+def datefix(datestr):
+    fix = datestr.replace('-','/')
+    return datetime.strptime(fix, "%m/%d/%y")
+
+
 def csvimport(filename=None):
     """ Assumes users have kept columns in the list-order. 
         Puts csv spreadsheet-derived data into database."""
@@ -373,6 +378,12 @@ def csvimport(filename=None):
                 item_count = 1
                 continue
             row = {label: item for label, item in zip(columns, line)}
+            datefixed = datetime.utcnow()
+            if row['In_Date']:
+                try:
+                    datefixed = datefix(row['In_Date'])
+                except:
+                    pass
             new_device = Phone(OEM=row['OEM'],
                                MEID=row['MEID'],
                                SKU=row['SKU'],
@@ -382,7 +393,7 @@ def csvimport(filename=None):
                                MSL=row['MSL'],
                                History=pickle.dumps([(row['DVT_Admin'], datetime.utcnow())]),
                                Comment=row['Comment'],
-                               In_Date=row['In_Date'],
+                               In_Date=datefixed,
                                Archived=row['Archived'],
                                TesterId=row['TesterId'],
                                DVT_Admin=row['DVT_Admin'])
@@ -398,7 +409,7 @@ def csvimport(filename=None):
 
 def automail():
     """ all checked out devices that have been in one tester's possession """
-    
+    devices = Phone.query.filter_by(In_Date > datetime.utcnow())
 
 
 def report(jsondata):
