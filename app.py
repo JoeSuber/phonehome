@@ -396,6 +396,11 @@ def csvimport(filename=None):
     print("imported {} items".format(item_count))
 
 
+def automail():
+    """ all checked out devices that have been in one tester's possession """
+    
+
+
 def report(jsondata):
     """ take in jsondata, render some html """
     pass
