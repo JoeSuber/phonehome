@@ -144,9 +144,9 @@ class NewDevice(FlaskForm):
                                            Unique(Phone, Phone.MEID, message="This MEID is already in the database")])
     SKU = StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
     MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
-    Hardware_Version = StringField('Hardware Version', validators=[Length(min=1, max=40)])
-    Serial_Number = StringField('Serial Number', validators=[Length(min=1, max=40)])
-    Archived = StringField('Archived')
+    Hardware_Version = StringField('Hardware Version', validators=[InputRequired(), Length(min=1, max=40)])
+    Serial_Number = StringField('Serial Number', validators=[InputRequired(), Length(min=6, max=16)])
+    Archived = BooleanField('Archived')
     MSL = StringField('MSL', validators=[InputRequired()])
     Comment = StringField('Comment')
 
