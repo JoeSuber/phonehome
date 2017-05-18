@@ -146,8 +146,9 @@ class NewDevice(FlaskForm):
     MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
     Hardware_Version = StringField('Hardware Version', validators=[Length(min=1, max=40)])
     Serial_Number = StringField('Serial Number', validators=[Length(min=1, max=40)])
-    MSL = StringField('MSL', validators=[InputRequired(), Length(min=2, max=40)])
-    Comment = StringField('Comment', validators=[Length(min=2, max=80)])
+    Archived = StringField('Archived')
+    MSL = StringField('MSL', validators=[InputRequired()])
+    Comment = StringField('Comment')
 
 
 ###########################
@@ -228,6 +229,7 @@ def newdevice():
                            MSL=form.MSL.data,
                            History=pickle.dumps([(session['userid'], datetime.utcnow())]),
                            Comment=form.Comment.data,
+                           Archived=form.Archived.data,
                            In_Date=datetime.utcnow(),
                            DVT_Admin=current_user.id)
 
