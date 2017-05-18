@@ -356,6 +356,9 @@ def csvimport(filename=None):
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for line in spamreader:
+            if not item_count:
+                item_count = 1
+                continue
             row = {label: item for label, item in zip(columns, line)}
             new_device = Phone(OEM=row['OEM'],
                                MEID=row['MEID'],
