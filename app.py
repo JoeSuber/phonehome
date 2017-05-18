@@ -135,7 +135,7 @@ class RegisterForm(FlaskForm):
     password = PasswordField('password', validators=[InputRequired(),
                                                      Length(min=8, max=80, message="Passwords are 8-80 characters")])
     phone_number = StringField('phone xxx-xxx-xxxx', validators=[Length(min=4, max=12)])
-    admin = BooleanField('admin')
+    admin = BooleanField('admin ')
 
 
 class NewDevice(FlaskForm):
@@ -146,7 +146,7 @@ class NewDevice(FlaskForm):
     MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
     Hardware_Version = StringField('Hardware Version', validators=[InputRequired(), Length(min=1, max=40)])
     Serial_Number = StringField('Serial Number', validators=[InputRequired(), Length(min=6, max=16)])
-    Archived = BooleanField('Archived')
+    Archived = BooleanField('Archived ')
     MSL = StringField('MSL', validators=[InputRequired()])
     Comment = StringField('Comment')
 
@@ -349,8 +349,19 @@ _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
            'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
 
+def csvexport(outfile=None):
+    """ create a spreadsheet template for users to fill using the _column list """
+    if not outfile:
+        outfile = os.path.join(os.getcwd(), "your_own_devices.csv")
+    with open(outfile, 'w', newline='') as output:
+        spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(_columns)
+    print("spreadsheet columns exported to: {}".format(outfile))
+
+
 def csvimport(filename=None):
-    """ assumes users have kept columns in the list order """
+    """ Assumes users have kept columns in the list-order. 
+        Puts csv spreadsheet-derived data into database."""
     if not filename:
         filename = os.path.join(os.getcwd(), "samsung.csv")
     columns = _columns
@@ -375,19 +386,19 @@ def csvimport(filename=None):
                                Archived=row['Archived'],
                                TesterId=row['TesterId'],
                                DVT_Admin=row['DVT_Admin'])
-            item_count += 1
-            db.session.add(new_device)
+            try:
+                db.session.add(new_device)
+                item_count += 1
+            except Exception as e:
+                print("ER: {}, {}".format(e, new_device))
+
         db.session.commit()
     print("imported {} items".format(item_count))
 
 
-def csvexport(outfile=None):
-    """ create a spreadsheet template for users using the _column list """
-    if not outfile:
-        outfile = os.path.join(os.getcwd(), "your_own_devices.csv")
-    with open(outfile, 'w', newline='') as output:
-        spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(_columns)
+def report(jsondata):
+    """ take in jsondata, render some html """
+    pass
 
 
 if __name__ == '__main__':
