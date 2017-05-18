@@ -193,7 +193,7 @@ def meid():
 
 
 @app.route('/newperson', methods=['GET', 'POST'])
-# @login_required
+# @login_required  ### <-- uncomment after adding first admin user to database
 def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
@@ -268,15 +268,17 @@ def editdevice():
     try:
         device = Phone.query.filter_by(MEID=session['editingMEID']).first()
         print("comment: {}".format(device.Comment))
-    except KeyError:
+    except KeyError:    # protect against false access attempt
         return redirect(url_for('meidedit'))
     # fill is some form blanks for user:
     newform = NewDevice(MEID=device.MEID,
                         SKU=device.SKU,
+                        OEM=device.OEM,
                         MODEL=device.MODEL,
                         Hardware_Type=device.Hardware_Type,
                         Hardware_Version=device.Hardware_Version,
                         MSL=device.MSL,
+                        Archived=device.Archived,
                         Comment=device.Comment)
     print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
     if request.method == "POST":
@@ -285,10 +287,12 @@ def editdevice():
         print(history)
         print("updating device: {}".format(device.MEID))
         device.SKU = newform.SKU.data
+        device.OEM = newform.OEM.data
         device.MODEL = newform.MODEL.data
         device.Hardware_Type = newform.Hardware_Type.data
         device.Hardware_Version = newform.Hardware_Version.data
         device.MSL = newform.MSL.data
+        device.Archived = newform.Archived.data
         device.Comment = newform.Comment.data
         device.History = pickle.dumps(history)
         db.session.commit()
