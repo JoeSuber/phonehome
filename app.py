@@ -382,7 +382,7 @@ def csvimport(filename=None):
 def csvexport(outfile=None):
     """ create a spreadsheet template for users using the _column list """
     if not outfile:
-        outfile = os.path.join(os.getcwd(), "newsheet.csv")
+        outfile = os.path.join(os.getcwd(), "your_own_devices.csv")
     with open(outfile, 'w', newline='') as output:
         spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(_columns)
