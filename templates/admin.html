@@ -18,17 +18,14 @@ Administration
 {{ navbar }}
 
 <div class="container">
-
     {{ flasher }}
     <li>  -  </li>
 
-    <li><h2><a href="{{ url_for('newdevice') }}">Add New Devices</a></h2></li>
-    <li><h2><a href="{{ url_for('meidedit') }}">Edit a Device</a></h2></li>
+    <li><h1><a href="{{ url_for('newdevice') }}">Add New Devices</a></h1></li>
+    <li><h1><a href="{{ url_for('meidedit') }}">Edit a Device</a></h1></li>
     <li>  - </li>
-    <li><h2><a href="{{ url_for('newperson') }}">Add New People</a></h2></li>
+    <li><h1><a href="{{ url_for('newperson') }}">Add New People</a></h1></li>
     <li>  - </li>
-    <li><h2><a href="{{ url_for('logout') }}">Log Out of Administrator Mode</a></h2></li>
-
-
+    <li><h1><a href="{{ url_for('logout') }}">Log Out of Administrator Mode</a></h1></li>
 </div> <!-- /container -->
 {% endblock %}
