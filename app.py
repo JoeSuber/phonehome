@@ -198,12 +198,12 @@ def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
         hashed_password = generate_password_hash(form.password.data)
-        logged = User(badge = form.badge.data,
-                      email = form.email.data,
-                      username = form.username.data,
-                      password = hashed_password,
-                      phone_number = form.phone_number.data,
-                      admin = form.admin.data)
+        logged = User(badge=form.badge.data,
+                      email=form.email.data,
+                      username=form.username.data,
+                      password=hashed_password,
+                      phone_number=form.phone_number.data,
+                      admin=form.admin.data)
         db.session.add(logged)
         db.session.commit()
         print("NEW USER!  {}".format(logged.username))
@@ -218,17 +218,17 @@ def newperson():
 def newdevice():
     form = NewDevice()
     if form.validate_on_submit():
-        new_device = Phone(OEM = form.OEM.data,
-                           MEID = form.MEID.data,
-                           SKU = form.SKU.data,
-                           MODEL = form.MODEL.data,
-                           Hardware_Type = form.Hardware_Type.data,
+        new_device = Phone(OEM=form.OEM.data,
+                           MEID=form.MEID.data,
+                           SKU=form.SKU.data,
+                           MODEL=form.MODEL.data,
+                           Hardware_Type=form.Hardware_Type.data,
                            Hardware_Version=form.Hardware_Version.data,
-                           MSL = form.MSL.data,
-                           History = pickle.dumps([(session['userid'], datetime.utcnow())]),
-                           Comment = form.Comment.data,
-                           In_Date = datetime.utcnow(),
-                           DVT_Admin = current_user.id)
+                           MSL=form.MSL.data,
+                           History=pickle.dumps([(session['userid'], datetime.utcnow())]),
+                           Comment=form.Comment.data,
+                           In_Date=datetime.utcnow(),
+                           DVT_Admin=current_user.id)
 
         db.session.add(new_device)
         db.session.commit()
@@ -284,7 +284,7 @@ def editdevice():
     if request.method == "POST":
         history = pickle.loads(device.History)
         history.append((current_user.id, datetime.utcnow()))
-        print(history) 
+        print(history)
         print("updating device: {}".format(device.MEID))
         device.SKU = newform.SKU.data
         device.OEM = newform.OEM.data
