@@ -58,7 +58,7 @@ class Phone(db.Model):
     SKU = db.Column(db.String(50))
     MODEL = db.Column(db.String(50))
     OEM = db.Column(db.String(16))
-    Hardware_Type = db.Column(db.String(50))
+    Serial_Number = db.Column(db.String(50))
     Hardware_Version = db.Column(db.String(50))
     In_Date = db.Column(db.DateTime)
     Archived = db.Column(db.String(50))
@@ -145,7 +145,7 @@ class NewDevice(FlaskForm):
     SKU = StringField('SKU', validators=[InputRequired(), Length(min=2, max=80)])
     MODEL = StringField('MODEL', validators=[InputRequired(), Length(min=2, max=80)])
     Hardware_Version = StringField('Hardware Version', validators=[Length(min=1, max=40)])
-    Hardware_Type = StringField('Hardware Type', validators=[Length(min=1, max=40)])
+    Serial_Number = StringField('Serial Number', validators=[Length(min=1, max=40)])
     MSL = StringField('MSL', validators=[InputRequired(), Length(min=2, max=40)])
     Comment = StringField('Comment', validators=[Length(min=2, max=80)])
 
@@ -223,7 +223,7 @@ def newdevice():
                            MEID=form.MEID.data,
                            SKU=form.SKU.data,
                            MODEL=form.MODEL.data,
-                           Hardware_Type=form.Hardware_Type.data,
+                           Serial_Number=form.Serial_Number.data,
                            Hardware_Version=form.Hardware_Version.data,
                            MSL=form.MSL.data,
                            History=pickle.dumps([(session['userid'], datetime.utcnow())]),
@@ -276,7 +276,7 @@ def editdevice():
                         SKU=device.SKU,
                         OEM=device.OEM,
                         MODEL=device.MODEL,
-                        Hardware_Type=device.Hardware_Type,
+                        Serial_Number=device.Serial_Number,
                         Hardware_Version=device.Hardware_Version,
                         MSL=device.MSL,
                         Archived=device.Archived,
@@ -290,7 +290,7 @@ def editdevice():
         device.SKU = newform.SKU.data
         device.OEM = newform.OEM.data
         device.MODEL = newform.MODEL.data
-        device.Hardware_Type = newform.Hardware_Type.data
+        device.Serial_Number = newform.Serial_Number.data
         device.Hardware_Version = newform.Hardware_Version.data
         device.MSL = newform.MSL.data
         device.Archived = newform.Archived.data
@@ -343,7 +343,7 @@ def logout():
 #########################
 ###### Import Data ######
 #########################
-_columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Hardware_Type', 'Hardware_Version',
+_columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
            'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
 
@@ -364,7 +364,7 @@ def csvimport(filename=None):
                                MEID=row['MEID'],
                                SKU=row['SKU'],
                                MODEL=row['MODEL'],
-                               Hardware_Type=row['Hardware_Type'],
+                               Serial_Number=row['Serial_Number'],
                                Hardware_Version=row['Hardware_Version'],
                                MSL=row['MSL'],
                                History=pickle.dumps([(row['DVT_Admin'], datetime.utcnow())]),
