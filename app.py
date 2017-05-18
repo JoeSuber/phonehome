@@ -134,7 +134,7 @@ class RegisterForm(FlaskForm):
                                                    Unique(User, User.username, message="Please choose another name")])
     password = PasswordField('password', validators=[InputRequired(),
                                                      Length(min=8, max=80, message="Passwords are 8-80 characters")])
-    phone_number = StringField('phone xxx-xxx-xxxx', validators=[Length(min=4, max=12)])
+    phone_number = StringField('phone xxx-xxx-xxxx', validators=[InputRequired(), Length(min=4, max=12)])
     admin = BooleanField('admin ')
 
 
