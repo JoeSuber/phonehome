@@ -284,7 +284,7 @@ def editdevice():
     if request.method == "POST":
         history = pickle.loads(device.History)
         history.append((current_user.id, datetime.utcnow()))
-        print(history)
+        print(history) 
         print("updating device: {}".format(device.MEID))
         device.SKU = newform.SKU.data
         device.OEM = newform.OEM.data
