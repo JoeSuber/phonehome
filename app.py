@@ -386,12 +386,12 @@ def csvimport(filename=None):
                 item_count = 1
                 continue
             row = {label: item for label, item in zip(columns, line)}
-            datefixed = datetime.utcnow()
+            datefixed = ''
             if row['In_Date']:
                 try:
                     datefixed = datefix(row['In_Date'])
                 except:
-                    pass
+                    datefixed = ''
             new_device = Phone(OEM=row['OEM'],
                                MEID=row['MEID'],
                                SKU=row['SKU'],
@@ -425,7 +425,7 @@ def overdue_report(manager_id, days=14, outfile=None):
     manager = User.query.get(manager_id)
     try:
         assert manager.Admin
-    except:
+    except AssertionError:
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
         return responce
@@ -447,7 +447,7 @@ def overdue_report(manager_id, days=14, outfile=None):
 
 def send_report(email, attachment_fn, subject='Overdue Devices Report'):
     with mail.connect() as conn:
-        message = Message(subject=subject, )
+        message = Message(subject=subject,  )
 
 
 if __name__ == '__main__':
