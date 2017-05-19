@@ -1,14 +1,14 @@
 from flask import Flask, render_template, redirect, url_for, flash, session, request, get_flashed_messages
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
-from flask_mail import Mail
+from flask_mail import Mail, Message
 from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pickle, os, csv
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # todo: take a look at codepen.io
 ###################################################################################
@@ -350,9 +350,9 @@ def logout():
     session['userid'] = None
     return redirect(url_for('index'))
 
-#########################
-###### Import Data ######
-#########################
+################################
+###### Import/Export Data ######
+################################
 _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
            'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
@@ -415,14 +415,39 @@ def csvimport(filename=None):
     print("imported {} items".format(item_count))
 
 
-def automail():
-    """ all checked out devices that have been in one tester's possession """
-    devices = Phone.query.filter_by()
+def overdue_report(manager_id, days=14, outfile=None):
+    """ query by manager to find devices that need checking-up on
+        write a report that can be sent as an attachment to managers. return filename. """
+    _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
+                'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
+    if not outfile:
+        outfile = os.path.join(os.getcwd(), "overdue_report.csv")
+    manager = User.query.get(manager_id)
+    try:
+        assert manager.Admin
+    except:
+        responce = "User: {} is not an Administrator".format(manager.username)
+        print(responce)
+        return responce
+
+    managers_stuff = Phone.query.filter_by(DVT_Admin=manager.id).all()
+    today = datetime.utcnow()
+    delta = timedelta(days)
+    overdue_stuff = [phone for phone in managers_stuff if (today - phone.In_Date) > delta]
+    with open(outfile, 'w', newline='') as output:
+        spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(_columns)
+        for i in overdue_stuff:
+            line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
+                    i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
+            spamwriter.writerow(line)
+    print("report file written to = {}".format(outfile))
+    return manager.email, outfile
 
 
-def report(jsondata):
-    """ take in jsondata, render some html """
-    pass
+def send_report(email, attachment_fn, subject='Overdue Devices Report'):
+    with mail.connect() as conn:
+        message = Message(subject=subject, )
 
 
 if __name__ == '__main__':
