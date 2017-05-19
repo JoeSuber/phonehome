@@ -1,6 +1,7 @@
-from flask import Flask, render_template, redirect, url_for, flash, session, request
+from flask import Flask, render_template, redirect, url_for, flash, session, request, get_flashed_messages
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
+from flask_mail import Mail
 from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
@@ -30,6 +31,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + __sql_inventory_fn__
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WERKZEUG_DEBUG_PIN'] = False
 Bootstrap(app)
+mail = Mail(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -61,7 +63,7 @@ class Phone(db.Model):
     Serial_Number = db.Column(db.String(50))
     Hardware_Version = db.Column(db.String(50))
     In_Date = db.Column(db.DateTime)
-    Archived = db.Column(db.String(50))
+    Archived = db.Column(db.Boolean)
     TesterId = db.Column(db.Integer)
     DVT_Admin = db.Column(db.String(80))
     MSL = db.Column(db.String(50))
@@ -163,14 +165,18 @@ def index():
         user = User.query.filter_by(badge=form.badge.data).first()
         session['userid'] = user.id
         return redirect(url_for('meid'))
-
+    try:
+        print("a", session['message'])
+        flash("{}".format(session['message']))
+    except KeyError:
+        print("no message")
+        pass
     return render_template('index.html', form=form)
 
 
 @app.route('/meid', methods=['GET', 'POST'])
 def meid():
     # step 2, get the device, change owner
-    flash("session user = {}".format(session['userid']))
     form = MeidForm()
     if form.validate_on_submit():
         device = Phone.query.filter_by(MEID=form.meid.data).first()
@@ -183,9 +189,11 @@ def meid():
             device.History = pickle.dumps(history)
             db.session.commit()
             flash("userid: {} took device: {}".format(session['userid'], device.MEID))
+            session['message'] = "{} now has {}".format(load_user(session['userid']).username, device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
 
+    flash("session user = {}".format(load_user(session['userid']).username))
     return render_template('meid.html', form=form)
 
 """
@@ -394,7 +402,7 @@ def csvimport(filename=None):
                                History=pickle.dumps([(row['DVT_Admin'], datetime.utcnow())]),
                                Comment=row['Comment'],
                                In_Date=datefixed,
-                               Archived=row['Archived'],
+                               Archived=bool(row['Archived']),
                                TesterId=row['TesterId'],
                                DVT_Admin=row['DVT_Admin'])
             try:
@@ -409,7 +417,7 @@ def csvimport(filename=None):
 
 def automail():
     """ all checked out devices that have been in one tester's possession """
-    devices = Phone.query.filter_by(In_Date > datetime.utcnow())
+    devices = Phone.query.filter_by()
 
 
 def report(jsondata):
