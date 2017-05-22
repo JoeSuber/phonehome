@@ -31,7 +31,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + __sql_inventory_fn__
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WERKZEUG_DEBUG_PIN'] = False
 app.config['MAIL_SERVER'] = 'localhost'
-DEFAULT_SENDER = 'joe.suber@DVT&C.com'
 """
 MAIL_PORT : default 25
 MAIL_USE_TLS : default False
@@ -44,6 +43,7 @@ MAIL_MAX_EMAILS : default None
 MAIL_SUPPRESS_SEND : default app.testing
 MAIL_ASCII_ATTACHMENTS : default False
 """
+DEFAULT_SENDER = 'joe.suber@DVT&C.com'
 
 Bootstrap(app)
 mail = Mail(app)
@@ -88,14 +88,13 @@ class Phone(db.Model):
 db.create_all()
 
 
-##########################
-##### Validators #########
-##########################
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
+##########################
+##### Validators #########
+##########################
 class Unique(object):
     """ validator for FlaskForm that demands field uniqueness against the current database entries """
     def __init__(self, model, field, message=None):
@@ -138,8 +137,7 @@ class MeidForm(FlaskForm):
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(),
                                                    Exists(User, User.username, message="Not a registered username")])
-    password = PasswordField('password', validators=[InputRequired(),
-                                                     Length(min=8, max=80)])
+    password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=80)])
 
 
 class RegisterForm(FlaskForm):
@@ -167,6 +165,12 @@ class NewDevice(FlaskForm):
     MSL = StringField('MSL', validators=[InputRequired()])
     Comment = StringField('Comment')
 
+
+class ChangePassword(FlaskForm):
+    account = StringField('user name for which we will change the password: ', validators=[InputRequired(),
+                                                   Exists(User, User.username, message="Not a registered username")])
+    password = PasswordField('new password:', validators=[InputRequired(), Length(min=8, max=80)])
+    retype = PasswordField('re-type   :', validators=[InputRequired(), Length(min=8, max=80)])
 
 ###########################
 ####### Routes ############
@@ -273,6 +277,25 @@ def admin():
     print("NOT an admin: {}".format(user.username))
     flash("NOT an admin: {}".format(user.username))
     return redirect(url_for('login'))
+
+
+@app.route('/newpass')
+@login_required
+def newpass():
+    user = User.query.get(int(current_user.id))
+    form = ChangePassword()
+    if form.validate_on_submit() and user.admin:
+        changer = User.query.filter_by(form.account.data).first()
+        # allow any admin to change any non-admin. Only allow admin to change their own.
+        if (not changer.admin) or (user.username == changer.username):
+            if form.password.data == form.retype.data:
+                changer.password = generate_password_hash(form.password.data)
+                db.session.commit()
+                print("Changed password for: {}".format(changer.username))
+                flash("Changed password for: {}".format(changer.username))
+                return redirect(url_for('admin'))
+
+    return render_template('newpass.html', form=form, name=user.username)
 
 
 @app.route('/meidedit', methods=['GET', 'POST'])

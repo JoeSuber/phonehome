@@ -18,11 +18,15 @@ Login
 
     <div class="container">
     {{ flasher }}
+
+        <b>Logged in as: </b>{{ name }}
+
       <form class="form-signin" method="POST" action="/login">
-        <h2 class="form-signin-heading">Log In</h2>
+        <h2 class="form-signin-heading">Change Password For...</h2>
         {{ form.hidden_tag() }}
-        {{ wtf.form_field(form.username) }}
+        {{ wtf.form_field(form.account) }}
         {{ wtf.form_field(form.password) }}
+        {{ wtf.form_field(form.retype) }}
         <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
       </form>
 
