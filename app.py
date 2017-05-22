@@ -30,6 +30,21 @@ print("Database file located at: {}".format(__sql_inventory_fn__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + __sql_inventory_fn__
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WERKZEUG_DEBUG_PIN'] = False
+app.config['MAIL_SERVER'] = 'localhost'
+DEFAULT_SENDER = 'joe.suber@DVT&C.com'
+"""
+MAIL_PORT : default 25
+MAIL_USE_TLS : default False
+MAIL_USE_SSL : default False
+MAIL_DEBUG : default app.debug
+MAIL_USERNAME : default None
+MAIL_PASSWORD : default None
+MAIL_DEFAULT_SENDER : default None
+MAIL_MAX_EMAILS : default None
+MAIL_SUPPRESS_SEND : default app.testing
+MAIL_ASCII_ATTACHMENTS : default False
+"""
+
 Bootstrap(app)
 mail = Mail(app)
 db = SQLAlchemy(app)
@@ -192,9 +207,9 @@ def meid():
             session['message'] = "{} now has {}".format(load_user(session['userid']).username, device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
-
-    flash("session user = {}".format(load_user(session['userid']).username))
-    return render_template('meid.html', form=form)
+    username = load_user(session['userid']).username
+    flash("session user = {}".format(username))
+    return render_template('meid.html', form=form, name=username)
 
 """
     todo: make page that takes MEID and shows history of device
@@ -254,7 +269,7 @@ def admin():
     user = User.query.get(int(current_user.id))
     print("{} user admin: {}".format(user.username, user.admin))
     if user.admin:
-        return render_template('admin.html')
+        return render_template('admin.html', name=user.username)
     print("NOT an admin: {}".format(user.username))
     flash("NOT an admin: {}".format(user.username))
     return redirect(url_for('login'))
@@ -436,7 +451,7 @@ def overdue_report(manager_id, days=14, outfile=None):
     overdue_stuff = [phone for phone in managers_stuff if (today - phone.In_Date) > delta]
     with open(outfile, 'w', newline='') as output:
         spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(_columns)
+        spamwriter.writerow(_columns) # column labels
         for i in overdue_stuff:
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
                     i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
@@ -445,9 +460,16 @@ def overdue_report(manager_id, days=14, outfile=None):
     return manager.email, outfile
 
 
-def send_report(email, attachment_fn, subject='Overdue Devices Report'):
-    with mail.connect() as conn:
-        message = Message(subject=subject,  )
+def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Report'):
+    if sender is None:
+        sender=DEFAULT_SENDER
+    message = Message(subject=subject,
+                      sender=sender,
+                      recipients=[email])
+    with app.open_resource(attachment_fn) as attachment:
+        message.attach(attachment_fn, "spreadsheet/csv", attachment.read())
+    mail.send(message)
+    print("sent mail from {} to {}".format(sender, email))
 
 
 if __name__ == '__main__':
