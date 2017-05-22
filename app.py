@@ -465,9 +465,8 @@ def csvimport(filename=None):
 def overdue_report(manager_id, days=14, outfile=None):
     """ query by manager to find devices that need checking-up on
         write a report that can be sent as an attachment to managers. return filename. """
-    _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
-                'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
-    if not outfile:
+    columns = _columns
+    if outfile is None:
         outfile = os.path.join(os.getcwd(), "overdue_report.csv")
     manager = User.query.get(manager_id)
     try:
@@ -476,15 +475,37 @@ def overdue_report(manager_id, days=14, outfile=None):
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
         return responce
-
     managers_stuff = Phone.query.filter_by(DVT_Admin=manager.id).all()
     today = datetime.utcnow()
     delta = timedelta(days)
     overdue_stuff = [phone for phone in managers_stuff if (today - phone.In_Date) > delta]
-    with open(outfile, 'w', newline='') as output:
-        spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(_columns) # column labels
+
+    with open(outfile, 'w', newline='') as output_obj:
+        spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(columns) # column labels
         for i in overdue_stuff:
+            line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
+                    i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
+            spamwriter.writerow(line)
+    print("report file written to = {}".format(outfile))
+    return manager.email, outfile
+
+
+def oem_report(manager_id, oem=None, outfile=None):
+    """ prepare a report that lists a manager's devices filtered by OEM """
+    columns = _columns
+    manager = User.query.get(manager_id)
+    if outfile is None:
+        outfile = os.path.join(os.getcwd(), "oem_report.csv")
+    if oem is None:
+        results = Phone.query.filter_by(DVT_Admin=manager_id).all()
+    else:
+        results = Phone.query.filter_by(DVT_Admin=manager_id).filter_by(OEM=oem).all()
+
+    with open(outfile, 'w', newline='') as output_obj:
+        spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(columns) # column labels
+        for i in results:
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
                     i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
             spamwriter.writerow(line)
