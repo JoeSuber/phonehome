@@ -380,8 +380,6 @@ def login():
             print("redirecting to {}".format(sent_from))
             return redirect(sent_from or url_for('index'))
 
-        print("LOGIN FAILED")
-        flash("LOGIN FAILED")
         message = "Incorrect Password"
     return render_template('login.html', form=form, message=message)
 
