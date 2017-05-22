@@ -279,21 +279,29 @@ def admin():
     return redirect(url_for('login'))
 
 
-@app.route('/newpass')
+@app.route('/newpass', methods=['GET', 'POST'])
 @login_required
 def newpass():
     user = User.query.get(int(current_user.id))
     form = ChangePassword()
+    print("form validate: {}  ...   user.admin: {}".format(form.validate_on_submit(), user.admin))
     if form.validate_on_submit() and user.admin:
-        changer = User.query.filter_by(form.account.data).first()
+        changer = User.query.filter_by(username=form.account.data).first()
         # allow any admin to change any non-admin. Only allow admin to change their own.
+        print("user.username = {}".format(user.username))
+        print("changer.username = {}".format(changer.username))
         if (not changer.admin) or (user.username == changer.username):
+            print("{} ?= {}".format(form.password.data, form.retype.data))
             if form.password.data == form.retype.data:
                 changer.password = generate_password_hash(form.password.data)
                 db.session.commit()
                 print("Changed password for: {}".format(changer.username))
                 flash("Changed password for: {}".format(changer.username))
                 return redirect(url_for('admin'))
+            print("Password feilds don't match!")
+            flash("Password feilds don't match!")
+            return redirect(url_for('newpass'))
+        print("NOT ALLOWED to make those changes")
 
     return render_template('newpass.html', form=form, name=user.username)
 
@@ -355,6 +363,7 @@ def editdevice():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    message = None
     if request.method == 'GET':
         session['sent_from'] = request.args.get('next')
         print("sent from = {}".format(session['sent_from']))
@@ -372,7 +381,8 @@ def login():
 
         print("LOGIN FAILED")
         flash("LOGIN FAILED")
-    return render_template('login.html', form=form)
+        message = "Incorrect Password"
+    return render_template('login.html', form=form, message=message)
 
 
 @app.route('/currentuser', methods=['GET', 'POST'])

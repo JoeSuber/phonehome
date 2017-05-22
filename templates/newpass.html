@@ -21,8 +21,8 @@ Login
 
         <b>Logged in as: </b>{{ name }}
 
-      <form class="form-signin" method="POST" action="/login">
-        <h2 class="form-signin-heading">Change Password For...</h2>
+      <form class="form-signin" method="POST" action="/newpass">
+        <h2 class="form-signin-heading">Change Password For:</h2>
         {{ form.hidden_tag() }}
         {{ wtf.form_field(form.account) }}
         {{ wtf.form_field(form.password) }}
