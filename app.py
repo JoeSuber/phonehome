@@ -282,6 +282,7 @@ def admin():
 @app.route('/newpass', methods=['GET', 'POST'])
 @login_required
 def newpass():
+    message = None
     user = User.query.get(int(current_user.id))
     form = ChangePassword()
     print("form validate: {}  ...   user.admin: {}".format(form.validate_on_submit(), user.admin))
@@ -299,11 +300,11 @@ def newpass():
                 flash("Changed password for: {}".format(changer.username))
                 return redirect(url_for('admin'))
             print("Password feilds don't match!")
-            flash("Password feilds don't match!")
-            return redirect(url_for('newpass'))
-        print("NOT ALLOWED to make those changes")
+            message = "Password feilds don't match!"
+        else:
+            message = "NOT ALLOWED to change another admin's password"
 
-    return render_template('newpass.html', form=form, name=user.username)
+    return render_template('newpass.html', form=form, name=user.username, message=message)
 
 
 @app.route('/meidedit', methods=['GET', 'POST'])
