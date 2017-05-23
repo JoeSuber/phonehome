@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, flash, session, req
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from flask_mail import Mail, Message
-from wtforms import StringField, PasswordField, BooleanField, ValidationError, SubmitField
+from wtforms import StringField, PasswordField, BooleanField, IntegerField, ValidationError, SubmitField
 from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -175,6 +175,10 @@ class ChangePassword(FlaskForm):
 
 class OemForm(FlaskForm):
     OEM = StringField('OEM name', validators=[InputRequired(), Exists(Phone, Phone.OEM, message="No OEM by that name!")])
+
+
+class OverdueForm(FlaskForm):
+    timeframe = IntegerField('Number of Days', validators=[InputRequired()])
 
 
 ###########################
@@ -386,16 +390,27 @@ def oemreport():
     user = load_user(current_user.id)
     form = OemForm()
     if form.validate_on_submit():
-        email, fn = oem_report(current_user.id, form.OEM.data, os.getcwd() + '{}_{}.csv'.format(user.username, form.OEM.data))
+        email, fn = oem_report(current_user.id,
+                               form.OEM.data,
+                               os.path.join(os.getcwd(), '{}_{}.csv'.format(user.username, form.OEM.data)))
         send_report(email, fn, subject='OEM-{} report'.format(form.OEM.data))
         return render_template('oemreport.html', form=form, message='report on {} sent!'.format(form.OEM.data))
     return render_template('oemreport.html', form=form, message="send report to: " + user.email)
 
 
-@app.route('/overdue', methods=['GET'])
+@app.route('/overdue', methods=['GET', 'POST'])
 @login_required
 def overdue():
-    pass
+    user=load_user(current_user.id)
+    form=OverdueForm()
+    if form.validate_on_submit():
+        email, fn = overdue_report(current_user.id,
+                                   form.timeframe.data,
+                                   outfile=os.path.join(os.getcwd(), '{}_overdue.csv'.format(user.username)))
+        send_report(email, fn, subject="Overdue devices report")
+        return render_template('overdue.html', form=form, message="overdue devices report sent")
+    return render_template('overdue.html', form=form,
+                           message="Please enter the number of days 'out' you are interested in")
 
 
 @app.route('/logout')
@@ -449,7 +464,6 @@ def csv_import(filename=None):
             row = {label: item for label, item in zip(columns, line)}
             # check that item is not already in database
             existing_item = Phone.query.filter_by(MEID=row['MEID']).first()
-
             if existing_item:
                 existing_item_count += 1
                 print("Item exists {}".format(row['MEID']))
@@ -530,7 +544,7 @@ def oem_report(manager_id, oem=None, outfile=None):
     if oem is None:
         results = Phone.query.filter_by(DVT_Admin=manager_id).all()
     else:
-        results = Phone.query.filter_by(DVT_Admin=manager_id).filter_by(OEM=oem).all()
+        results = Phone.query.filter_by(OEM=oem).all()
 
     with open(outfile, 'w', newline='') as output_obj:
         spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
