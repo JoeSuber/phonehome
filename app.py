@@ -386,7 +386,7 @@ def oemreport():
     user = load_user(current_user.id)
     form = OemForm()
     if form.validate_on_submit():
-        email, fn = oem_report(current_user.id, form.OEM.data, '{}_{}.csv'.format(user.username, form.OEM.data))
+        email, fn = oem_report(current_user.id, form.OEM.data, os.getcwd() + '{}_{}.csv'.format(user.username, form.OEM.data))
         send_report(email, fn, subject='OEM-{} report'.format(form.OEM.data))
         return render_template('oemreport.html', form=form, message='report on {} sent!'.format(form.OEM.data))
     return render_template('oemreport.html', form=form, message="send report to: " + user.email)
