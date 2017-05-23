@@ -384,10 +384,16 @@ def login():
     return render_template('login.html', form=form, message=message)
 
 
-@app.route('/currentuser', methods=['GET', 'POST'])
+@app.route('/oemreport', methods=['GET'])
 @login_required
-def currentuser():
-    return "<h1> Current user is {} </h1>".format(current_user.username)
+def oemreport():
+    pass
+
+
+@app.route('/overdue', methods=['GET'])
+@login_required
+def overdue():
+    pass
 
 
 @app.route('/logout')
@@ -404,7 +410,7 @@ _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
            'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
 
-def csvexport(outfile=None):
+def csv_template(outfile=None):
     """ create a spreadsheet template for users to fill using the _column list """
     if not outfile:
         outfile = os.path.join(os.getcwd(), "your_own_devices.csv")
@@ -416,50 +422,60 @@ def csvexport(outfile=None):
 
 def datefix(datestr):
     fix = datestr.replace('-','/')
-    return datetime.strptime(fix, "%m/%d/%y")
+    if len(fix) > 4:
+        try:
+            return datetime.strptime(fix, "%m/%d/%y")
+        except ValueError:
+            return datetime.strptime(fix, "%m/%d/%Y")
+    return datetime.utcnow()
 
 
-def csvimport(filename=None):
+def csv_import(filename=None):
     """ Assumes users have kept columns in the list-order. 
         Puts csv spreadsheet-derived data into database."""
     if not filename:
-        filename = os.path.join(os.getcwd(), "samsung.csv")
+        filename = os.path.join(os.getcwd(), "scotts.csv")
     columns = _columns
-    item_count = 0
+    new_item_count, existing_item_count = 0, 0
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for line in spamreader:
-            if not item_count:
-                item_count = 1
+        for line in spamreader:     # skip the rows
+            if not new_item_count:
+                new_item_count = 1
                 continue
             row = {label: item for label, item in zip(columns, line)}
-            datefixed = ''
-            if row['In_Date']:
-                try:
-                    datefixed = datefix(row['In_Date'])
-                except:
-                    datefixed = ''
+            # check that item is not already in database
+            existing_item = Phone.query.filter_by(MEID=row['MEID']).first()
+
+            if existing_item:
+                existing_item_count += 1
+                print("Item exists {}".format(row['MEID']))
+                continue
+
+            print("import: {}".format(row))
             new_device = Phone(OEM=row['OEM'],
                                MEID=row['MEID'],
                                SKU=row['SKU'],
                                MODEL=row['MODEL'],
                                Serial_Number=row['Serial_Number'],
                                Hardware_Version=row['Hardware_Version'],
-                               MSL=row['MSL'],
+                               MSL=row['MSL'].strip('"'),
                                History=pickle.dumps([(row['DVT_Admin'], datetime.utcnow())]),
-                               Comment=row['Comment'],
-                               In_Date=datefixed,
+                               Comment=row['Comment'].replace(os.linesep, ' '),
+                               In_Date=datefix(row['In_Date']),
                                Archived=bool(row['Archived']),
                                TesterId=row['TesterId'],
                                DVT_Admin=row['DVT_Admin'])
             try:
                 db.session.add(new_device)
-                item_count += 1
+                new_item_count += 1
             except Exception as e:
                 print("ER: {}, {}".format(e, new_device))
 
         db.session.commit()
-    print("imported {} items".format(item_count))
+    print("imported {} items".format(new_item_count - 1))
+    print("ignored {} existing items".format(existing_item_count))
+    return 1
 
 
 def overdue_report(manager_id, days=14, outfile=None):
@@ -492,7 +508,8 @@ def overdue_report(manager_id, days=14, outfile=None):
 
 
 def oem_report(manager_id, oem=None, outfile=None):
-    """ prepare a report that lists a manager's devices filtered by OEM """
+    """ prepare a .csv report that lists a manager's devices filtered by OEM 
+        (or just return all devices) """
     columns = _columns
     manager = User.query.get(manager_id)
     if outfile is None:
@@ -523,6 +540,16 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
         message.attach(attachment_fn, "spreadsheet/csv", attachment.read())
     mail.send(message)
     print("sent mail from {} to {}".format(sender, email))
+
+
+def import_all_sheets(fns=None):
+    base = os.getcwd()
+    if not fns:
+        fns = [os.path.join(os.getcwd(), fn) for fn in os.listdir(os.getcwd()) if fn.endswith(".csv")]
+    for fn in fns:
+        print("processing {}".format(fn))
+        csv_import(filename=fn)
+    return 1
 
 
 if __name__ == '__main__':
