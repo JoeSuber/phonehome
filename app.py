@@ -405,7 +405,7 @@ def overdue():
     form=OverdueForm()
     if form.validate_on_submit():
         email, fn = overdue_report(current_user.id,
-                                   form.timeframe.data,
+                                   days=form.timeframe.data,
                                    outfile=os.path.join(os.getcwd(), '{}_overdue.csv'.format(user.username)))
         send_report(email, fn, subject="Overdue devices report")
         return render_template('overdue.html', form=form, message="overdue devices report sent")
@@ -513,7 +513,7 @@ def overdue_report(manager_id, days=14, outfile=None):
         outfile = os.path.join(os.getcwd(), "overdue_report.csv")
     manager = User.query.get(manager_id)
     try:
-        assert manager.Admin
+        assert manager.admin
     except AssertionError:
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
@@ -521,7 +521,7 @@ def overdue_report(manager_id, days=14, outfile=None):
     managers_stuff = Phone.query.filter_by(DVT_Admin=manager.id).all()
     today = datetime.utcnow()
     delta = timedelta(days)
-    overdue_stuff = [phone for phone in managers_stuff if (today - phone.In_Date) > delta]
+    overdue_stuff = [phone for phone in managers_stuff if ((today - phone.In_Date) > delta) and phone.TesterId]
 
     with open(outfile, 'w', newline='') as output_obj:
         spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
