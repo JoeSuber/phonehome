@@ -481,6 +481,16 @@ def csv_import(filename=None):
     return 1
 
 
+def nameid(id_num):
+    """ try to find a human readable string to go with the id number """
+    person = None
+    if id_num:
+        person = User.query.get(int(id_num))
+    if person:
+        return person.username
+    return ''
+
+
 def overdue_report(manager_id, days=14, outfile=None):
     """ query by manager to find devices that need checking-up on
         write a report that can be sent as an attachment to managers. return filename. """
@@ -504,7 +514,7 @@ def overdue_report(manager_id, days=14, outfile=None):
         spamwriter.writerow(columns) # column labels
         for i in overdue_stuff:
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, load_user(i.TesterId or 0).username, load_user(i.DVT_Admin or 0).username, i.MSL, i.Comment]
+                    i.Archived, nameid(i.TesterId), nameid(i.DVT_Admin), i.MSL, i.Comment]
             spamwriter.writerow(line)
     print("report file written to = {}".format(outfile))
     return manager.email, outfile
@@ -528,7 +538,7 @@ def oem_report(manager_id, oem=None, outfile=None):
         for i in results:
             print(i.DVT_Admin)
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, load_user(i.TesterId or 0).username, load_user(i.DVT_Admin or 0).username, i.MSL, i.Comment]
+                    i.Archived, nameid(i.TesterId), nameid(i.DVT_Admin), i.MSL, i.Comment]
             spamwriter.writerow(line)
     print("report file written to = {}".format(outfile))
     return manager.email, outfile
