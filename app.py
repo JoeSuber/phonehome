@@ -210,7 +210,8 @@ def meid():
             history.append((session['userid'], datetime.utcnow()))
             device.History = pickle.dumps(history)
             db.session.commit()
-            session['message'] = "{} now has {}".format(load_user(session['userid']).username, device.MEID)
+            session['message'] = "{} now has device: {}  w/meid: {}".format(load_user(session['userid']).username,
+                                                                            device.MODEL, device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
     username = load_user(session['userid']).username
@@ -503,7 +504,7 @@ def overdue_report(manager_id, days=14, outfile=None):
         spamwriter.writerow(columns) # column labels
         for i in overdue_stuff:
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
+                    i.Archived, load_user(i.TesterId or 0).username, load_user(i.DVT_Admin or 0).username, i.MSL, i.Comment]
             spamwriter.writerow(line)
     print("report file written to = {}".format(outfile))
     return manager.email, outfile
@@ -525,8 +526,9 @@ def oem_report(manager_id, oem=None, outfile=None):
         spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(columns) # column labels
         for i in results:
+            print(i.DVT_Admin)
             line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, load_user(i.TesterId).username, load_user(i.DVT_Admin).username, i.MSL, i.Comment]
+                    i.Archived, load_user(i.TesterId or 0).username, load_user(i.DVT_Admin or 0).username, i.MSL, i.Comment]
             spamwriter.writerow(line)
     print("report file written to = {}".format(outfile))
     return manager.email, outfile
