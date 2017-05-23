@@ -214,8 +214,9 @@ def meid():
             history.append((session['userid'], datetime.utcnow()))
             device.History = pickle.dumps(history)
             db.session.commit()
-            session['message'] = "{} now has device: {}  w/meid: {}".format(load_user(session['userid']).username,
-                                                                            device.MODEL, device.MEID)
+            session['message'] = "{} took {} - {}  {}  w/meid: {}".format(load_user(session['userid']).username,
+                                                                          device.OEM, device.SKU, device.MODEL,
+                                                                          device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
     username = load_user(session['userid']).username
