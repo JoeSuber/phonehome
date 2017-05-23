@@ -172,6 +172,11 @@ class ChangePassword(FlaskForm):
     password = PasswordField('new password:', validators=[InputRequired(), Length(min=8, max=80)])
     retype = PasswordField('re-type   :', validators=[InputRequired(), Length(min=8, max=80)])
 
+
+class OemForm(FlaskForm):
+    OEM = StringField('OEM name', validators=[InputRequired(), Exists(Phone, Phone.OEM, message="No OEM by that name!")])
+
+
 ###########################
 ####### Routes ############
 ###########################
@@ -184,13 +189,11 @@ def index():
         user = User.query.filter_by(badge=form.badge.data).first()
         session['userid'] = user.id
         return redirect(url_for('meid'))
-    try:
-        print("a", session['message'])
-        flash("{}".format(session['message']))
-    except KeyError:
-        print("no message")
-        pass
-    return render_template('index.html', form=form)
+    message = None
+    if 'message' in session:
+        message = session.pop('message')
+
+    return render_template('index.html', form=form, message=message)
 
 
 @app.route('/meid', methods=['GET', 'POST'])
@@ -207,12 +210,11 @@ def meid():
             history.append((session['userid'], datetime.utcnow()))
             device.History = pickle.dumps(history)
             db.session.commit()
-            flash("userid: {} took device: {}".format(session['userid'], device.MEID))
             session['message'] = "{} now has {}".format(load_user(session['userid']).username, device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
     username = load_user(session['userid']).username
-    flash("session user = {}".format(username))
+
     return render_template('meid.html', form=form, name=username)
 
 """
@@ -271,11 +273,8 @@ def newdevice():
 @login_required
 def admin():
     user = User.query.get(int(current_user.id))
-    print("{} user admin: {}".format(user.username, user.admin))
     if user.admin:
         return render_template('admin.html', name=user.username)
-    print("NOT an admin: {}".format(user.username))
-    flash("NOT an admin: {}".format(user.username))
     return redirect(url_for('login'))
 
 
@@ -285,22 +284,18 @@ def newpass():
     message = None
     user = User.query.get(int(current_user.id))
     form = ChangePassword()
-    print("form validate: {}  ...   user.admin: {}".format(form.validate_on_submit(), user.admin))
     if form.validate_on_submit() and user.admin:
         changer = User.query.filter_by(username=form.account.data).first()
         # allow any admin to change any non-admin. Only allow admin to change their own.
         print("user.username = {}".format(user.username))
         print("changer.username = {}".format(changer.username))
         if (not changer.admin) or (user.username == changer.username):
-            print("{} ?= {}".format(form.password.data, form.retype.data))
             if form.password.data == form.retype.data:
                 changer.password = generate_password_hash(form.password.data)
                 db.session.commit()
                 print("Changed password for: {}".format(changer.username))
-                flash("Changed password for: {}".format(changer.username))
                 return redirect(url_for('admin'))
-            print("Password feilds don't match!")
-            message = "Password feilds don't match!"
+            message = "Password fields don't match!"
         else:
             message = "NOT ALLOWED to change another admin's password"
 
@@ -384,10 +379,16 @@ def login():
     return render_template('login.html', form=form, message=message)
 
 
-@app.route('/oemreport', methods=['GET'])
+@app.route('/oemreport', methods=['GET', 'POST'])
 @login_required
 def oemreport():
-    pass
+    user = load_user(current_user.id)
+    form = OemForm()
+    if form.validate_on_submit():
+        email, fn = oem_report(current_user.id, form.OEM.data, '{}_{}.csv'.format(user.username, form.OEM.data))
+        send_report(email, fn, subject='OEM-{} report'.format(form.OEM.data))
+        return render_template('oemreport.html', form=form, message='report on {} sent!'.format(form.OEM.data))
+    return render_template('oemreport.html', form=form, message="send report to: " + user.email)
 
 
 @app.route('/overdue', methods=['GET'])
@@ -421,6 +422,7 @@ def csv_template(outfile=None):
 
 
 def datefix(datestr):
+    """ turn an empty string or string into a pythonic datetime object """
     fix = datestr.replace('-','/')
     if len(fix) > 4:
         try:
