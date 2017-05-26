@@ -424,6 +424,9 @@ def logout():
 ################################
 ###### Import/Export Data ######
 ################################
+
+""" _columns must be the same at time of import and export to assure the proper labels """
+
 _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
            'In_Date', 'Archived', 'TesterId', 'DVT_Admin', 'MSL', 'Comment']
 
@@ -439,7 +442,8 @@ def csv_template(outfile=None):
 
 
 def datefix(datestr):
-    """ turn an empty string or string into a pythonic datetime object """
+    """ transform string into a python datetime object 
+        handle mm/dd/yy or mm/dd/yyyy or dashes instead of slashes """
     fix = datestr.replace('-','/')
     if len(fix) > 4:
         try:
@@ -450,7 +454,7 @@ def datefix(datestr):
 
 
 def csv_import(filename=None):
-    """ Assumes users have kept columns in the list-order. 
+    """ Assumes users have kept columns in the _column list-order. 
         Puts csv spreadsheet-derived data into database."""
     if not filename:
         filename = os.path.join(os.getcwd(), "scotts.csv")
@@ -458,8 +462,8 @@ def csv_import(filename=None):
     new_item_count, existing_item_count = 0, 0
     with open(filename, newline='') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for line in spamreader:     # skip the rows
-            if not new_item_count:
+        for line in spamreader:
+            if not new_item_count:  # skip the row labels
                 new_item_count = 1
                 continue
             row = {label: item for label, item in zip(columns, line)}
@@ -493,7 +497,7 @@ def csv_import(filename=None):
         db.session.commit()
     print("imported {} items".format(new_item_count - 1))
     print("ignored {} existing items".format(existing_item_count))
-    return 1
+    return True
 
 
 def nameid(id_num):
@@ -506,10 +510,23 @@ def nameid(id_num):
     return ''
 
 
+def report_spamer(spam_list, outfn):
+    """ writes out reports to a csv that can be opened into a spreadsheet"""
+    columns = _columns
+    with open(outfn, 'w', newline='') as output_obj:
+        spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(columns) # column labels
+        for i in spam_list:
+            line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
+                    i.Archived, nameid(i.TesterId), nameid(i.DVT_Admin), i.MSL, i.Comment]
+            spamwriter.writerow(line)
+    print("report file written to = {}".format(outfn))
+    return True
+
+
 def overdue_report(manager_id, days=14, outfile=None):
     """ query by manager to find devices that need checking-up on
         write a report that can be sent as an attachment to managers. return filename. """
-    columns = _columns
     if outfile is None:
         outfile = os.path.join(os.getcwd(), "overdue_report.csv")
     manager = User.query.get(manager_id)
@@ -519,26 +536,16 @@ def overdue_report(manager_id, days=14, outfile=None):
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
         return None, responce
-    managers_stuff = Phone.query.filter_by(DVT_Admin=manager.id).all()
-    today = datetime.utcnow()
-    delta = timedelta(days)
-    overdue_stuff = [phone for phone in managers_stuff if ((today - phone.In_Date) > delta) and phone.TesterId]
+    overdue_stuff = [phone for phone in Phone.query.filter_by(DVT_Admin=manager.id).all()
+                     if ((datetime.utcnow() - phone.In_Date) > timedelta(days)) and phone.TesterId]
 
-    with open(outfile, 'w', newline='') as output_obj:
-        spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(columns) # column labels
-        for i in overdue_stuff:
-            line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, nameid(i.TesterId), nameid(i.DVT_Admin), i.MSL, i.Comment]
-            spamwriter.writerow(line)
-    print("report file written to = {}".format(outfile))
+    report_spamer(overdue_stuff, outfile)
     return manager.email, outfile
 
 
 def oem_report(manager_id, oem=None, outfile=None):
-    """ prepare a .csv report that lists a manager's devices filtered by OEM 
-        (or just return all devices) """
-    columns = _columns
+    """ prepare a .csv report that lists all devices from a particular OEM 
+        or just return all devices from a manager (old and gone: filter by manager and OEM)"""
     manager = User.query.get(manager_id)
     if outfile is None:
         outfile = os.path.join(os.getcwd(), "oem_report.csv")
@@ -547,19 +554,12 @@ def oem_report(manager_id, oem=None, outfile=None):
     else:
         results = Phone.query.filter_by(OEM=oem).all()
 
-    with open(outfile, 'w', newline='') as output_obj:
-        spamwriter = csv.writer(output_obj, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(columns) # column labels
-        for i in results:
-            print(i.DVT_Admin)
-            line = [i.MEID, i.OEM, i.MODEL, i.SKU, i.Serial_Number, i.Hardware_Version, str(i.In_Date.date()),
-                    i.Archived, nameid(i.TesterId), nameid(i.DVT_Admin), i.MSL, i.Comment]
-            spamwriter.writerow(line)
-    print("report file written to = {}".format(outfile))
+    report_spamer(results, outfile)
     return manager.email, outfile
 
 
 def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Report'):
+    """ email an attachment """
     if sender is None:
         sender=DEFAULT_SENDER
     message = Message(subject=subject,
@@ -572,6 +572,7 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
 
 
 def import_all_sheets(fns=None):
+    """ gather up the .csv files and import them all at once """
     base = os.getcwd()
     if not fns:
         fns = [os.path.join(os.getcwd(), fn) for fn in os.listdir(os.getcwd()) if fn.endswith(".csv")]
