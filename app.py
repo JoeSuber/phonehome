@@ -536,8 +536,10 @@ def overdue_report(manager_id, days=14, outfile=None):
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
         return None, responce
+    today = datetime.utcnow()
+    delta = timedelta(days)
     overdue_stuff = [phone for phone in Phone.query.filter_by(DVT_Admin=manager.id).all()
-                     if ((datetime.utcnow() - phone.In_Date) > timedelta(days)) and phone.TesterId]
+                     if ((today - phone.In_Date) > delta) and phone.TesterId]
 
     report_spamer(overdue_stuff, outfile)
     return manager.email, outfile
