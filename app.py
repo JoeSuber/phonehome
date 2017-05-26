@@ -518,7 +518,7 @@ def overdue_report(manager_id, days=14, outfile=None):
     except AssertionError:
         responce = "User: {} is not an Administrator".format(manager.username)
         print(responce)
-        return responce
+        return None, responce
     managers_stuff = Phone.query.filter_by(DVT_Admin=manager.id).all()
     today = datetime.utcnow()
     delta = timedelta(days)
