@@ -577,7 +577,7 @@ def import_all_sheets(fns=None):
     """ gather up the .csv files and import them all at once """
     base = os.getcwd()
     if not fns:
-        fns = [os.path.join(os.getcwd(), fn) for fn in os.listdir(os.getcwd()) if fn.endswith(".csv")]
+        fns = [os.path.join(base, fn) for fn in os.listdir(base) if fn.endswith(".csv")]
     for fn in fns:
         print("processing {}".format(fn))
         csv_import(filename=fn)
