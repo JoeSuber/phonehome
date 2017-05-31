@@ -586,3 +586,32 @@ def import_all_sheets(fns=None):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    # app.run(host='0.0.0.0', port=5000)
+"""
+http://terokarvinen.com/2016/deploy-flask-python3-on-apache2-ubuntu
+
+    ## /etc/apache2/sites-available/app.conf
+    < VirtualHost * >
+    ServerName
+    dvtandc.com
+
+    WSGIDaemonProcess
+    app
+    user = raspberry
+    group = raspberry
+    threads = 5
+    WSGIScriptAlias / /home/pi/phonehome/app.wsgi
+
+< Directory /home/pi/phonehome/ >
+WSGIProcessGroup
+app
+WSGIApplicationGroup % {GLOBAL}
+WSGIScriptReloading
+On
+
+Require
+all
+granted
+< / Directory >
+< / VirtualHost >
+"""
