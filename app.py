@@ -222,6 +222,7 @@ def meid():
     if ('userid' in session) and session['userid']:
         username = load_user(session['userid']).username
     else:
+        session['message'] = "Enter destination badge first:"
         return redirect(url_for('index'))
 
     return render_template('meid.html', form=form, name=username)
