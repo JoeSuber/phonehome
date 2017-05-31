@@ -219,7 +219,10 @@ def meid():
                                                                           device.MEID)
             session['userid'], device = None, None
         return redirect(url_for('index'))
-    username = load_user(session['userid']).username
+    if ('userid' in session) and session['userid']:
+        username = load_user(session['userid']).username
+    else:
+        return redirect(url_for('index'))
 
     return render_template('meid.html', form=form, name=username)
 
