@@ -218,12 +218,13 @@ def meid():
                                                                           device.OEM, device.SKU, device.MODEL,
                                                                           device.MEID)
             session['userid'], device = None, None
-        return redirect(url_for('index'))
+        return redirect(url_for('index'))   # success!
+
     if ('userid' in session) and session['userid']:
         username = load_user(session['userid']).username
     else:
         session['message'] = "Enter destination badge first:"
-        return redirect(url_for('index'))
+        return redirect(url_for('index'))   #  fail! probably tried to access page directly
 
     return render_template('meid.html', form=form, name=username)
 
