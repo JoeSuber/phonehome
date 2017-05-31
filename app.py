@@ -43,7 +43,7 @@ MAIL_MAX_EMAILS : default None
 MAIL_SUPPRESS_SEND : default app.testing
 MAIL_ASCII_ATTACHMENTS : default False
 """
-DEFAULT_SENDER = 'joe.suber@DVT&C.com'
+DEFAULT_SENDER = 'joe.suber@DVTandC.com'
 
 Bootstrap(app)
 mail = Mail(app)
@@ -330,7 +330,6 @@ def meidedit():
 def editdevice():
     try:
         device = Phone.query.filter_by(MEID=session['editingMEID']).first()
-        print("comment: {}".format(device.Comment))
     except KeyError:    # protect against false access attempt
         return redirect(url_for('meidedit'))
     # fill is some form blanks for user:
@@ -343,12 +342,9 @@ def editdevice():
                         MSL=device.MSL,
                         Archived=device.Archived,
                         Comment=device.Comment)
-    print("newform.validate_on_submit(): {}".format(newform.validate_on_submit()))
     if request.method == "POST":
         history = pickle.loads(device.History)
         history.append((current_user.id, datetime.utcnow()))
-        print(history)
-        print("updating device: {}".format(device.MEID))
         device.SKU = newform.SKU.data
         device.OEM = newform.OEM.data
         device.MODEL = newform.MODEL.data
@@ -360,7 +356,6 @@ def editdevice():
         device.History = pickle.dumps(history)
         db.session.commit()
         used = session.pop('editingMEID')
-        flash(" {} MEID = {} was updated".format(device.SKU, used))
         print(" {} MEID = {} was updated".format(device.SKU, used))
         return render_template('admin.html')
     return render_template('editdevice.html', form=newform)
@@ -372,17 +367,13 @@ def login():
     message = None
     if request.method == 'GET':
         session['sent_from'] = request.args.get('next')
-        print("sent from = {}".format(session['sent_from']))
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if check_password_hash(user.password, form.password.data):
-            print("LOGGED IN! {}".format(user.email))
             login_user(user, remember=True)
             session['userid'] = user.id
             sent_from = session['sent_from']
             session['sent_from'] = None
-            print("current user id = {}".format(current_user.id))
-            print("redirecting to {}".format(sent_from))
             return redirect(sent_from or url_for('index'))
 
         message = "Incorrect Password"
@@ -436,7 +427,7 @@ _columns = ['MEID', 'OEM', 'MODEL', 'SKU', 'Serial_Number', 'Hardware_Version',
 
 
 def csv_template(outfile=None):
-    """ create a spreadsheet template for users to fill using the _column list """
+    """ create a spreadsheet template for project managers to fill using the _column list """
     if not outfile:
         outfile = os.path.join(os.getcwd(), "your_own_devices.csv")
     with open(outfile, 'w', newline='') as output:
