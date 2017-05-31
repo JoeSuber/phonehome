@@ -496,6 +496,17 @@ def csv_import(filename=None):
     return True
 
 
+def import_all_sheets(fns=None):
+    """ gather up the .csv files and import them all at once """
+    base = os.getcwd()
+    if not fns:
+        fns = [os.path.join(base, fn) for fn in os.listdir(base) if fn.endswith(".csv")]
+    for fn in fns:
+        print("processing {}".format(fn))
+        csv_import(filename=fn)
+    return 1
+
+
 def nameid(id_num):
     """ try to find a human readable string to go with the id number """
     person = None
@@ -567,17 +578,6 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
         message.attach(attachment_fn, "spreadsheet/csv", attachment.read())
     mail.send(message)
     print("sent mail from {} to {}".format(sender, email))
-
-
-def import_all_sheets(fns=None):
-    """ gather up the .csv files and import them all at once """
-    base = os.getcwd()
-    if not fns:
-        fns = [os.path.join(base, fn) for fn in os.listdir(base) if fn.endswith(".csv")]
-    for fn in fns:
-        print("processing {}".format(fn))
-        csv_import(filename=fn)
-    return 1
 
 
 if __name__ == '__main__':
