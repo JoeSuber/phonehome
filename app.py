@@ -578,11 +578,12 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
     """ email an attachment """
     if sender is None:
         sender=DEFAULT_SENDER
-    message = Message(subject=subject,
+    human_name = os.path.split(attachment_fn)[-1]
+    message = Message(subject=subject + " " + human_name,
                       sender=sender,
                       recipients=[email])
     with app.open_resource(attachment_fn) as attachment:
-        message.attach(attachment_fn, "spreadsheet/csv", attachment.read())
+        message.attach(human_name, "spreadsheet/csv", attachment.read())
     mail.send(message)
     print("sent mail from {} to {}".format(sender, email))
     return True
