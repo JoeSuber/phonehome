@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pickle, os, csv
 from datetime import datetime, timedelta
+import privates
 
 # todo: take a look at codepen.io
 ###################################################################################
@@ -30,7 +31,13 @@ print("Database file located at: {}".format(__sql_inventory_fn__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + __sql_inventory_fn__
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WERKZEUG_DEBUG_PIN'] = False
-app.config['MAIL_SERVER'] = 'localhost'
+app.config.update(
+    MAIL_SERVER = 'smtp.gmail.com',
+    MAIL_PORT = 465,
+    MAIL_USE_SSL = True,
+    MAIL_USERNAME = privates.mailacct,
+    MAIL_PASSWORD = privates.hodor
+)
 """
 MAIL_PORT : default 25
 MAIL_USE_TLS : default False
@@ -43,7 +50,7 @@ MAIL_MAX_EMAILS : default None
 MAIL_SUPPRESS_SEND : default app.testing
 MAIL_ASCII_ATTACHMENTS : default False
 """
-DEFAULT_SENDER = 'joe.suber@DVTandC.com'
+DEFAULT_SENDER = 'joe.suber@dvtandc.com'
 
 Bootstrap(app)
 mail = Mail(app)

@@ -1,0 +1,2 @@
+mailacct = ""
+hodor = ""
