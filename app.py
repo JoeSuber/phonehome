@@ -235,7 +235,7 @@ def meid():
 
 
 @app.route('/newperson', methods=['GET', 'POST'])
-# @login_required  ### <-- uncomment after adding first admin user to database
+@login_required  ### <-- uncomment after adding first admin user to database
 def newperson():
     form = RegisterForm()
     if form.validate_on_submit():
@@ -578,6 +578,7 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
         message.attach(attachment_fn, "spreadsheet/csv", attachment.read())
     mail.send(message)
     print("sent mail from {} to {}".format(sender, email))
+    return True
 
 
 if __name__ == '__main__':
