@@ -234,11 +234,6 @@ def meid():
 
     return render_template('meid.html', form=form, name=username)
 
-"""
-    todo: make page that takes MEID and shows history of device
-    todo: function for taking device.History list into json (or something)
-"""
-
 
 @app.route('/newperson', methods=['GET', 'POST'])
 @login_required  ### <-- uncomment after adding first admin user to database
@@ -278,11 +273,9 @@ def newdevice():
                            Archived=form.Archived.data,
                            In_Date=datetime.utcnow(),
                            DVT_Admin=current_user.id)
-
         db.session.add(new_device)
         db.session.commit()
         return redirect(url_for('newdevice'))
-
     return render_template('newdevice.html', form=form)
 
 
@@ -315,7 +308,6 @@ def newpass():
             message = "Password fields don't match!"
         else:
             message = "NOT ALLOWED to change another admin's password"
-
     return render_template('newpass.html', form=form, name=user.username, message=message)
 
 
@@ -382,7 +374,6 @@ def login():
             sent_from = session['sent_from']
             session['sent_from'] = None
             return redirect(sent_from or url_for('index'))
-
         message = "Incorrect Password"
     return render_template('login.html', form=form, message=message)
 
