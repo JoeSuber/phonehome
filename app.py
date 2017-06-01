@@ -9,7 +9,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import pickle, os, csv
 from datetime import datetime, timedelta
-import privates
 
 # todo: take a look at codepen.io
 ###################################################################################
@@ -35,8 +34,8 @@ app.config.update(
     MAIL_SERVER = 'smtp.gmail.com',
     MAIL_PORT = 465,
     MAIL_USE_SSL = True,
-    MAIL_USERNAME = privates.mailacct,
-    MAIL_PASSWORD = privates.hodor
+    MAIL_USERNAME = 'joe.suber@dvtandc.com',
+    MAIL_PASSWORD = ''
 )
 """
 MAIL_PORT : default 25
