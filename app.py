@@ -11,6 +11,9 @@ import pickle, os, csv
 from datetime import datetime, timedelta
 
 # todo: take a look at codepen.io
+# https://askubuntu.com/questions/865554/how-do-i-install-python-3-6-using-apt-get
+# https://gist.github.com/GrahamDumpleton/b79d336569054882679e
+# https://askubuntu.com/questions/716429/how-to-put-my-server-on-the-internet
 ###################################################################################
 # DONT FORGET! to uncomment the '@login_required' for newperson() upon deployment
 ###################################################################################
@@ -420,6 +423,25 @@ def csv_template(outfile=None):
         spamwriter = csv.writer(output, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(_columns)
     print("spreadsheet columns exported to: {}".format(outfile))
+
+
+def csv_dump(phones_fn=None, people_fn=None):
+    from collections import Counter
+    if not phones_fn:
+        phones_fn = os.path.join(os.getcwd(), "all_devices.csv")
+    if not people_fn:
+        people_fn = os.path.join(os.getcwd(), "all_people.csv")
+    existing_items = Phone.query.all()
+    if report_spamer(existing_items, phones_fn):
+        print("dumped {} lines of phone info to: {}".format(len(existing_items), phones_fn))
+    existing_people = User.query.all()
+    people_columns = []
+    for k in User.__dict__.keys():
+        dunders = Counter(k)
+        if dunders['_'] > 1:
+            continue
+        people_columns.append(k)
+    print("{}".format(people_columns))
 
 
 def datefix(datestr):
