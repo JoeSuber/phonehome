@@ -7,6 +7,7 @@ from wtforms.validators import InputRequired, Email, Length
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_sslify import SSLify
 import pickle, os, csv
 from datetime import datetime, timedelta
 
@@ -14,12 +15,14 @@ from datetime import datetime, timedelta
 # https://askubuntu.com/questions/865554/how-do-i-install-python-3-6-using-apt-get
 # https://gist.github.com/GrahamDumpleton/b79d336569054882679e
 # https://askubuntu.com/questions/716429/how-to-put-my-server-on-the-internet
+# https://help.ubuntu.com/lts/serverguide/httpd.html#https-configuration
 ###################################################################################
 # DONT FORGET! to uncomment the '@login_required' for newperson() upon deployment
 ###################################################################################
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
+sslify = SSLify(app, subdomains=True)
 
 __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
@@ -595,7 +598,7 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
 
 if __name__ == '__main__':
     app.run(debug=True)
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(host='0.0.0.0')
 """
 http://terokarvinen.com/2016/deploy-flask-python3-on-apache2-ubuntu
 """
