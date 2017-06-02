@@ -37,19 +37,6 @@ app.config.update(
     MAIL_USERNAME = 'joe.suber@dvtandc.com',
     MAIL_PASSWORD = ''
 )
-"""
-MAIL_PORT : default 25
-MAIL_USE_TLS : default False
-MAIL_USE_SSL : default False
-MAIL_DEBUG : default app.debug
-MAIL_USERNAME : default None
-MAIL_PASSWORD : default None
-MAIL_DEFAULT_SENDER : default None
-MAIL_MAX_EMAILS : default None
-MAIL_SUPPRESS_SEND : default app.testing
-MAIL_ASCII_ATTACHMENTS : default False
-"""
-DEFAULT_SENDER = 'joe.suber@dvtandc.com'
 
 Bootstrap(app)
 mail = Mail(app)
@@ -97,6 +84,7 @@ db.create_all()
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 ##########################
 ##### Validators #########
@@ -567,7 +555,7 @@ def oem_report(manager_id, oem=None, outfile=None):
 def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Report'):
     """ email an attachment """
     if sender is None:
-        sender=DEFAULT_SENDER
+        sender=app.config['MAIL_USERNAME']
     human_name = os.path.split(attachment_fn)[-1]
     message = Message(subject=subject + " " + human_name,
                       sender=sender,
