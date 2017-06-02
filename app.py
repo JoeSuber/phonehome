@@ -425,15 +425,16 @@ def csv_template(outfile=None):
     print("spreadsheet columns exported to: {}".format(outfile))
 
 
-def csv_dump(phones_fn=None, people_fn=None):
+def csv_dump(phones_fn=None):
+    """ Call from console to get a dump file that can be re-imported
+        or examined as a csv.
+        WARNING: does not preserve passwords or device history """
     from collections import Counter
     if not phones_fn:
         phones_fn = os.path.join(os.getcwd(), "all_devices.csv")
-    if not people_fn:
-        people_fn = os.path.join(os.getcwd(), "all_people.csv")
     existing_items = Phone.query.all()
     if report_spamer(existing_items, phones_fn):
-        print("dumped {} lines of phone info to: {}".format(len(existing_items), phones_fn))
+        print("dumped {} lines of device data".format(len(existing_items)))
     existing_people = User.query.all()
     people_columns = []
     for k in User.__dict__.keys():
@@ -441,7 +442,10 @@ def csv_dump(phones_fn=None, people_fn=None):
         if dunders['_'] > 1:
             continue
         people_columns.append(k)
-    print("{}".format(people_columns))
+    for peep in existing_people:
+        print("****")
+        for stat in people_columns:
+            print("{}: {}".format(stat, peep.__dict__[stat]))
 
 
 def datefix(datestr):
