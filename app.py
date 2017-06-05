@@ -16,13 +16,14 @@ from datetime import datetime, timedelta
 # https://gist.github.com/GrahamDumpleton/b79d336569054882679e
 # https://askubuntu.com/questions/716429/how-to-put-my-server-on-the-internet
 # https://help.ubuntu.com/lts/serverguide/httpd.html#https-configuration
+# ssl encrypt: https://www.youtube.com/watch?v=2iXfGn1Ur6U
 ###################################################################################
 # DONT FORGET! to uncomment the '@login_required' for newperson() upon deployment
 ###################################################################################
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
-sslify = SSLify(app, subdomains=True)
+#sslify = SSLify(app, subdomains=True)
 
 __dbfn__ = "DVTCinventory"
 __sqlext__ = '.sqlite'
@@ -597,7 +598,7 @@ def send_report(email, attachment_fn, sender=None, subject='Overdue Devices Repo
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
     # app.run(host='0.0.0.0')
 """
 http://terokarvinen.com/2016/deploy-flask-python3-on-apache2-ubuntu
